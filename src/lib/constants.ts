@@ -26,12 +26,12 @@ export const LANDS_IN_OPTIONS = [
   "Slack",
   "Terminal",
   "Browser",
-  "Overig",
+  "Other",
 ];
 
 export const ACTION_TYPES: { value: ActionType; label: string; icon: string; color: string }[] = [
-  { value: "copy", label: "Kopieer", icon: "\uD83D\uDCCB", color: "bg-[#5CEFB5]/15 text-[#5CEFB5]" },
-  { value: "install", label: "Installeer", icon: "\u2699\uFE0F", color: "bg-[#7B8FF7]/15 text-[#7B8FF7]" },
+  { value: "copy", label: "Copy", icon: "\uD83D\uDCCB", color: "bg-[#5CEFB5]/15 text-[#5CEFB5]" },
+  { value: "install", label: "Install", icon: "\u2699\uFE0F", color: "bg-[#7B8FF7]/15 text-[#7B8FF7]" },
   { value: "download", label: "Download", icon: "\u2B07", color: "bg-[#F7C948]/15 text-[#F7C948]" },
   { value: "link", label: "Open link", icon: "\uD83D\uDD17", color: "bg-[#7A7F8E]/15 text-[#7A7F8E]" },
 ];

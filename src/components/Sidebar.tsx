@@ -1,11 +1,17 @@
 "use client";
 
-import { Category } from "@/lib/types";
-import { CATEGORIES } from "@/lib/constants";
+import { CategoryFilter } from "@/hooks/usePrompts";
+
+const CATEGORIES: { value: CategoryFilter; label: string; emoji: string }[] = [
+  { value: "prompt", label: "Prompts", emoji: "\uD83D\uDCAC" },
+  { value: "skill", label: "Skills", emoji: "\u26A1" },
+  { value: "agent_workflow", label: "Agents & Workflows", emoji: "\uD83E\uDD16" },
+  { value: "resource", label: "Resources", emoji: "\uD83D\uDCE6" },
+];
 
 interface SidebarProps {
-  categoryFilter: Category | "all" | "starred";
-  onCategoryChange: (val: Category | "all" | "starred") => void;
+  categoryFilter: CategoryFilter;
+  onCategoryChange: (val: CategoryFilter) => void;
   counts: Record<string, number>;
   open: boolean;
   onClose: () => void;
@@ -18,7 +24,7 @@ export default function Sidebar({
   open,
   onClose,
 }: SidebarProps) {
-  const handleClick = (val: Category | "all" | "starred") => {
+  const handleClick = (val: CategoryFilter) => {
     onCategoryChange(val);
     onClose();
   };
@@ -28,7 +34,6 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Mobile overlay */}
       {open && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />
       )}
@@ -39,7 +44,6 @@ export default function Sidebar({
         }`}
       >
         <div className="flex h-full flex-col px-2 py-5">
-          {/* Logo - mobile only */}
           <div className="mb-4 flex items-center justify-between px-3 lg:hidden">
             <span className="text-sm font-bold text-[var(--text)]">Menu</span>
             <button onClick={onClose} className="p-1 text-[var(--muted)]">&times;</button>
@@ -52,7 +56,7 @@ export default function Sidebar({
                 categoryFilter === "all" ? activeClass : inactiveClass
               }`}
             >
-              <span>Alles</span>
+              <span>All</span>
               <span className="text-[11px] text-[var(--muted)]">{counts.all || 0}</span>
             </button>
 
@@ -62,7 +66,7 @@ export default function Sidebar({
                 categoryFilter === "starred" ? activeClass : inactiveClass
               }`}
             >
-              <span>Favorieten</span>
+              <span>{"\u2605"} Favorites</span>
               <span className="text-[11px] text-[var(--muted)]">{counts.starred || 0}</span>
             </button>
 
@@ -84,19 +88,6 @@ export default function Sidebar({
                 </span>
               </button>
             ))}
-
-            <div className="mx-3 my-3 border-t border-[var(--border)]" />
-
-            <div className="space-y-2 px-3 py-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[var(--muted)]">Actief</span>
-                <span className="font-bold text-[var(--accent)]">{counts.active || 0}</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[var(--muted)]">Totaal gebruik</span>
-                <span className="font-bold text-[var(--text)]">{counts.totalUsage || 0}&times;</span>
-              </div>
-            </div>
           </nav>
         </div>
       </aside>

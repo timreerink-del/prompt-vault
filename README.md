@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prompt Vault
+
+An open-source, community-driven prompt registry for product designers and UX practitioners. Browse, copy, and contribute AI prompts, skills, agent workflows, and resources.
+
+## Features
+
+- Browse prompts, skills, workflows, and agent configurations
+- Copy prompts to clipboard with one click
+- Install commands for Claude Code skills
+- Download content as markdown files
+- Community contributions via proposal system
+- Admin review and approval workflow
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Tailwind CSS 4
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: Clerk
+- **Deployment**: Vercel
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- npm or yarn
+- Supabase account (free tier works)
+- Clerk account (free tier works)
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/timreerink-del/prompt-vault.git
+cd prompt-vault
+npm install
+```
+
+### 2. Set up environment variables
+
+Copy the example env file and fill in your values:
+
+```bash
+cp .env.example .env.local
+```
+
+### 3. Set up Supabase
+
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to SQL Editor and run the schema from `schema.sql`
+3. Copy your project URL and keys into `.env.local`
+
+### 4. Set up Clerk
+
+1. Create an app at [clerk.com](https://clerk.com)
+2. Enable Google and/or GitHub sign-in
+3. Copy your publishable key and secret key into `.env.local`
+
+### 5. Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Deploy to Vercel:
 
-## Learn More
+1. Push to GitHub
+2. Import in [vercel.com](https://vercel.com)
+3. Add environment variables in Vercel dashboard
+4. Deploy
 
-To learn more about Next.js, take a look at the following resources:
+## Contributing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Browse the registry at the deployed site
+2. Sign in with your account
+3. Click "Propose" to submit a new prompt, skill, or workflow
+4. Admins will review and approve contributions
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Local development
 
-## Deploy on Vercel
+```bash
+npm run dev    # Start dev server
+npm run build  # Production build
+npm run lint   # Run linter
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT — see [LICENSE](LICENSE) for details.

@@ -1,7 +1,13 @@
 {
-  "name": "prompt-registry",
-  "version": "0.1.0",
-  "private": true,
+  "name": "prompt-vault",
+  "version": "1.0.0",
+  "private": false,
+  "description": "Open-source community prompt registry for AI prompts, skills, workflows, and agents",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/timreerink-del/prompt-vault"
+  },
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +15,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "firebase": "^12.11.0",
+    "@clerk/nextjs": "^7.0.8",
+    "@clerk/themes": "^2.4.57",
+    "@supabase/supabase-js": "^2.101.1",
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4"
@@ -19,6 +27,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",

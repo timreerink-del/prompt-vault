@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Status, SortOption } from "@/lib/types";
-import { STATUSES } from "@/lib/constants";
+import { StatusFilter, SortOption } from "@/hooks/usePrompts";
 
 interface SearchBarProps {
   search: string;
   onSearchChange: (val: string) => void;
-  statusFilter: Status | "all";
-  onStatusChange: (val: Status | "all") => void;
+  statusFilter: StatusFilter;
+  onStatusChange: (val: StatusFilter) => void;
   sortBy: SortOption;
   onSortChange: (val: SortOption) => void;
   onToggleSidebar: () => void;
@@ -68,23 +67,10 @@ export default function SearchBar({
           ref={inputRef}
           defaultValue={search}
           onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Zoeken... ⌘K"
+          placeholder="Search prompts, skills, workflows..."
           className="w-full rounded-[6px] border border-[var(--border)] bg-[var(--surface)] py-2 pl-10 pr-4 text-sm text-[var(--text)] outline-none transition-colors placeholder:text-[var(--muted)] focus:border-[var(--border-hover)]"
         />
       </div>
-
-      <select
-        value={statusFilter}
-        onChange={(e) => onStatusChange(e.target.value as Status | "all")}
-        className={selectClass}
-      >
-        <option value="all">Alle statussen</option>
-        {STATUSES.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
-        ))}
-      </select>
 
       <select
         value={sortBy}
@@ -93,7 +79,6 @@ export default function SearchBar({
       >
         <option value="recent">Recent</option>
         <option value="az">A &rarr; Z</option>
-        <option value="usage">Meest gebruikt</option>
       </select>
     </div>
   );
