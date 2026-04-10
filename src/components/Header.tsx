@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth, SignInButton, UserButton } from "@clerk/nextjs";
+import { useAuth, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 
 interface HeaderProps {
@@ -8,7 +8,7 @@ interface HeaderProps {
 }
 
 export default function Header({ totalCount }: HeaderProps) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg)]/80 px-6 py-3 backdrop-blur-md">
@@ -23,7 +23,7 @@ export default function Header({ totalCount }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
-        {isSignedIn ? (
+        {!isLoaded ? null : isSignedIn ? (
           <>
             <Link
               href="/propose"
@@ -40,11 +40,12 @@ export default function Header({ totalCount }: HeaderProps) {
             />
           </>
         ) : (
-          <SignInButton mode="modal">
-            <button className="rounded-[6px] px-3 py-1.5 text-xs text-[var(--muted)] transition-colors hover:text-[var(--text)]">
-              Sign in
-            </button>
-          </SignInButton>
+          <Link
+            href="/sign-in"
+            className="rounded-[6px] px-3 py-1.5 text-xs text-[var(--muted)] transition-colors hover:text-[var(--text)]"
+          >
+            Sign in
+          </Link>
         )}
       </div>
     </header>
