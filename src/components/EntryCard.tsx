@@ -35,7 +35,7 @@ export default function EntryCard({ entry, onClick }: EntryCardProps) {
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           {entry.featured && (
-            <span className="shrink-0 text-sm text-yellow-400">{"\u2605"}</span>
+            <span className="shrink-0 text-sm" style={{ color: "#facc15" }}>{"\u2605"}</span>
           )}
           <h3 className="truncate text-sm font-semibold text-[var(--text)]">{entry.title}</h3>
         </div>
