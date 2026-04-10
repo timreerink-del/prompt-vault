@@ -23,7 +23,7 @@ export default function Header({ totalCount }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
-        {!isLoaded ? null : isSignedIn ? (
+        {isLoaded && isSignedIn ? (
           <>
             <Link
               href="/propose"
