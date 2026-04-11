@@ -53,10 +53,14 @@ export default function SignUpPage() {
         appearance={{
           ...(theme === "dark" ? { baseTheme: dark } : {}),
           variables: {
-            colorBackground: theme === "dark" ? "#13161C" : "#FFFFFF",
+            colorBackground: theme === "dark" ? "#1A1E27" : "#FFFFFF",
             colorPrimary: theme === "dark" ? "#5CEFB5" : "#9B5DE5",
-            colorText: theme === "dark" ? "#E4E6EB" : "#2D2240",
-            colorTextSecondary: theme === "dark" ? "#7A7F8E" : "#8A7FA0",
+            colorText: theme === "dark" ? "#FFFFFF" : "#1A1A2E",
+            colorTextSecondary: theme === "dark" ? "#B0B5C3" : "#6B6B80",
+            colorTextOnPrimaryBackground: theme === "dark" ? "#0B0D11" : "#FFFFFF",
+            colorInputText: theme === "dark" ? "#FFFFFF" : "#1A1A2E",
+            colorInputBackground: theme === "dark" ? "#232833" : "#F5F5F7",
+            colorNeutral: theme === "dark" ? "#FFFFFF" : "#1A1A2E",
             borderRadius: "8px",
           },
         }}
