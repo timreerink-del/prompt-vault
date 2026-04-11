@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useAuth, useUser, UserButton, SignOutButton } from "@clerk/nextjs";
+import { useAuth, useUser, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { useTheme } from "./ThemeProvider";
 
@@ -17,46 +16,11 @@ export default function Header({ totalCount, viewMode, onViewModeChange }: Heade
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const { theme, toggleTheme } = useTheme();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const displayName = user?.firstName
     || user?.username
     || user?.emailAddresses?.[0]?.emailAddress?.split("@")[0]
     || "";
-
-  /* Close dropdown on outside click */
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
-
-  /* ── Shared SVGs ── */
-  const sunIcon = (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="5" />
-      <line x1="12" y1="1" x2="12" y2="3" />
-      <line x1="12" y1="21" x2="12" y2="23" />
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-      <line x1="1" y1="12" x2="3" y2="12" />
-      <line x1="21" y1="12" x2="23" y2="12" />
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-    </svg>
-  );
-
-  const moonIcon = (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
-  );
 
   return (
     <header
@@ -183,34 +147,47 @@ export default function Header({ totalCount, viewMode, onViewModeChange }: Heade
         </div>
       </div>
 
-      {/* ── Right: actions ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {/* Desktop: theme toggle */}
-        <div className="hidden md:flex">
-          <button
-            onClick={toggleTheme}
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 30,
-              height: 30,
-              borderRadius: 6,
-              border: "none",
-              cursor: "pointer",
-              background: "var(--toggle-bg)",
-              color: "var(--muted)",
-              transition: "all 0.2s",
-            }}
-          >
-            {theme === "dark" ? sunIcon : moonIcon}
-          </button>
-        </div>
+      {/* ── Right: desktop-only controls ── */}
+      <div className="hidden md:flex" style={{ alignItems: "center", gap: 12 }}>
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 30,
+            height: 30,
+            borderRadius: 6,
+            border: "none",
+            cursor: "pointer",
+            background: "var(--toggle-bg)",
+            color: "var(--muted)",
+            transition: "all 0.2s",
+          }}
+        >
+          {theme === "dark" ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
+        </button>
 
         {isLoaded && isSignedIn ? (
           <>
-            {/* + New — icon-only on mobile, full on desktop */}
             <Link
               href="/propose"
               style={{
@@ -231,11 +208,10 @@ export default function Header({ totalCount, viewMode, onViewModeChange }: Heade
               onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
             >
               <span style={{ fontSize: 15, lineHeight: 1 }}>+</span>
-              <span className="hidden md:inline">New</span>
+              New
             </Link>
 
-            {/* Desktop: username + badge + avatar */}
-            <div className="hidden md:flex items-center" style={{ gap: 8, marginLeft: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 4 }}>
               <span style={{ fontSize: 13, color: "var(--muted)" }}>{displayName}</span>
               <span
                 style={{
@@ -251,20 +227,18 @@ export default function Header({ totalCount, viewMode, onViewModeChange }: Heade
                 admin
               </span>
             </div>
-            <div className="hidden md:block">
-              <UserButton
-                appearance={{
-                  elements: { avatarBox: { width: 28, height: 28 } },
-                }}
-              />
-            </div>
+
+            <UserButton
+              appearance={{
+                elements: { avatarBox: { width: 28, height: 28 } },
+              }}
+            />
           </>
         ) : isLoaded ? (
-          /* Desktop: Sign in button */
           <Link
             href="/sign-in"
-            className="hidden md:flex"
             style={{
+              display: "flex",
               alignItems: "center",
               gap: 6,
               background: "var(--accent)",
@@ -280,149 +254,6 @@ export default function Header({ totalCount, viewMode, onViewModeChange }: Heade
             Sign in
           </Link>
         ) : null}
-
-        {/* ── Mobile: hamburger ── */}
-        <div className="relative md:hidden" ref={menuRef}>
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Menu"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 32,
-              height: 32,
-              borderRadius: 6,
-              border: "none",
-              cursor: "pointer",
-              background: menuOpen ? "var(--surface-2)" : "var(--toggle-bg)",
-              color: "var(--muted)",
-              transition: "all 0.15s",
-            }}
-          >
-            {menuOpen ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            )}
-          </button>
-
-          {menuOpen && (
-            <div
-              style={{
-                position: "absolute",
-                right: 0,
-                top: "calc(100% + 8px)",
-                width: 220,
-                borderRadius: 8,
-                border: "1px solid var(--border)",
-                background: "var(--surface)",
-                boxShadow: "0 8px 24px rgba(0,0,0,.25)",
-                overflow: "hidden",
-                zIndex: 50,
-              }}
-            >
-              {/* Theme toggle row */}
-              <button
-                onClick={() => { toggleTheme(); setMenuOpen(false); }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  width: "100%",
-                  padding: "12px 16px",
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                  color: "var(--text)",
-                  fontSize: 13,
-                  textAlign: "left",
-                  borderBottom: "1px solid var(--border)",
-                  transition: "background 0.15s",
-                }}
-              >
-                <span style={{ display: "flex", color: "var(--muted)" }}>
-                  {theme === "dark" ? sunIcon : moonIcon}
-                </span>
-                {theme === "dark" ? "Light mode" : "Dark mode"}
-              </button>
-
-              {/* Auth row */}
-              {isLoaded && isSignedIn ? (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 16px",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <UserButton
-                      appearance={{
-                        elements: { avatarBox: { width: 24, height: 24 } },
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color: "var(--text)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {displayName}
-                    </span>
-                  </div>
-                  <SignOutButton>
-                    <button
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: 12,
-                        color: "var(--muted)",
-                        padding: "4px 8px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      Sign out
-                    </button>
-                  </SignOutButton>
-                </div>
-              ) : (
-                <Link
-                  href="/sign-in"
-                  onClick={() => setMenuOpen(false)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "12px 16px",
-                    color: "var(--text)",
-                    fontSize: 13,
-                    textDecoration: "none",
-                  }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--muted)" }}>
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                    <polyline points="10 17 15 12 10 7" />
-                    <line x1="15" y1="12" x2="3" y2="12" />
-                  </svg>
-                  Sign in
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
       </div>
     </header>
   );
