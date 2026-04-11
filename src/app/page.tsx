@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePrompts, CategoryFilter, StatusFilter, SortOption } from "@/hooks/usePrompts";
 import { Entry } from "@/lib/queries";
-import Header from "@/components/Header";
+import Header, { ViewMode } from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import SearchBar from "@/components/SearchBar";
 import EntryCard from "@/components/EntryCard";
@@ -28,6 +28,7 @@ export default function Home() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<Entry | undefined>();
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -40,7 +41,7 @@ export default function Home() {
       />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header totalCount={counts.all} />
+        <Header totalCount={counts.all} viewMode={viewMode} onViewModeChange={setViewMode} />
 
         <SearchBar
           search={search}
@@ -74,12 +75,13 @@ export default function Home() {
               </p>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+            <div className={viewMode === "grid" ? "grid gap-3 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
               {entries.map((entry) => (
                 <EntryCard
                   key={entry.id}
                   entry={entry}
                   onClick={() => setSelectedEntry(entry)}
+                  compact={viewMode === "list"}
                 />
               ))}
             </div>

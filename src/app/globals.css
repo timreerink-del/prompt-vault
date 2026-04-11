@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-:root {
+/* ── Dark theme (default) ── */
+:root,
+[data-theme="dark"] {
   --bg: #0B0D11;
   --surface: #13161C;
   --surface-2: #1B1F28;
@@ -13,6 +15,46 @@
   --accent-2: #7B8FF7;
   --warn: #F7715C;
   --code: #B5F0D0;
+  --header-bg: rgba(11, 13, 17, 0.85);
+  --header-border: rgba(255, 255, 255, 0.06);
+  --toggle-bg: #1B1F28;
+  --toggle-active: #2A2F3C;
+  --pill-bg: #1B1F28;
+  --pill-text: #7A7F8E;
+  --btn-text: #0B0D11;
+  --star-color: #facc15;
+  --scrollbar-thumb: #27272a;
+  --scrollbar-hover: #3f3f46;
+  --select-bg: #1B1F28;
+  --select-text: #E4E6EB;
+}
+
+/* ── Light theme — offwhite / pink / purple / blue ── */
+[data-theme="light"] {
+  --bg: #F8F6F4;
+  --surface: #FFFFFF;
+  --surface-2: #F0ECF5;
+  --surface-3: #E8E0F0;
+  --border: rgba(120, 80, 160, 0.12);
+  --border-hover: rgba(120, 80, 160, 0.24);
+  --text: #2D2240;
+  --muted: #8A7FA0;
+  --accent: #9B5DE5;
+  --accent-2: #5B8DEF;
+  --warn: #E85D75;
+  --code: #6B4FA0;
+  --header-bg: rgba(248, 246, 244, 0.9);
+  --header-border: rgba(120, 80, 160, 0.1);
+  --toggle-bg: #EDE8F5;
+  --toggle-active: #DDD4EC;
+  --pill-bg: #EDE8F5;
+  --pill-text: #8A7FA0;
+  --btn-text: #FFFFFF;
+  --star-color: #D4A017;
+  --scrollbar-thumb: #D0C8DC;
+  --scrollbar-hover: #B8ADCC;
+  --select-bg: #FFFFFF;
+  --select-text: #2D2240;
 }
 
 @theme inline {
@@ -22,7 +64,7 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #27272a transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 body {
@@ -68,11 +110,11 @@ pre, code, .font-mono, textarea.font-mono {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: var(--scrollbar-hover);
 }
 
 /* Select styling for dark mode */
@@ -86,6 +128,6 @@ select {
 }
 
 select option {
-  background: #1B1F28;
-  color: #E4E6EB;
+  background: var(--select-bg);
+  color: var(--select-text);
 }

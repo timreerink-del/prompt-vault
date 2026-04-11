@@ -17,15 +17,62 @@ function getTypeInfo(type: string) {
 interface EntryCardProps {
   entry: Entry;
   onClick: () => void;
+  compact?: boolean;
 }
 
-export default function EntryCard({ entry, onClick }: EntryCardProps) {
+export default function EntryCard({ entry, onClick, compact = false }: EntryCardProps) {
   const typeInfo = getTypeInfo(entry.type);
 
   const formattedDate = entry.updated_at
     ? new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short" }).format(new Date(entry.updated_at))
     : "";
 
+  /* ── List (compact) view ── */
+  if (compact) {
+    return (
+      <div
+        onClick={onClick}
+        className="group flex cursor-pointer items-center gap-4 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 transition-all hover:border-[var(--border-hover)] hover:shadow-lg hover:shadow-black/20"
+      >
+        {/* Star + Title */}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {entry.featured && (
+            <span className="shrink-0 text-sm" style={{ color: "var(--star-color)" }}>{"\u2605"}</span>
+          )}
+          <h3 className="truncate text-sm font-semibold text-[var(--text)]">{entry.title}</h3>
+        </div>
+
+        {/* Type badge */}
+        <span className="hidden sm:inline-flex shrink-0 items-center rounded-[20px] bg-[var(--surface-2)] px-2 py-[2px] text-[10px] font-bold text-[var(--muted)]">
+          {typeInfo.emoji} {typeInfo.label}
+        </span>
+
+        {/* Tags (first 2) */}
+        <div className="hidden md:flex items-center gap-1.5 shrink-0">
+          {entry.tags.slice(0, 2).map((tag) => (
+            <span
+              key={tag}
+              className="rounded-[20px] bg-[var(--surface-2)] px-2 py-[2px] text-[10px] text-[var(--muted)]"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        {/* Date */}
+        {formattedDate && (
+          <span className="shrink-0 text-[10px] text-[var(--muted)]">{formattedDate}</span>
+        )}
+
+        {/* Copy */}
+        <div className="shrink-0 opacity-0 transition-all group-hover:opacity-100">
+          <CopyButton text={entry.content || entry.description} />
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Grid (default) view ── */
   return (
     <div
       onClick={onClick}
@@ -35,7 +82,7 @@ export default function EntryCard({ entry, onClick }: EntryCardProps) {
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           {entry.featured && (
-            <span className="shrink-0 text-sm" style={{ color: "#facc15" }}>{"\u2605"}</span>
+            <span className="shrink-0 text-sm" style={{ color: "var(--star-color)" }}>{"\u2605"}</span>
           )}
           <h3 className="truncate text-sm font-semibold text-[var(--text)]">{entry.title}</h3>
         </div>

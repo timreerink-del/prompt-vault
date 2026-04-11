@@ -41,7 +41,7 @@ export default function EntryDetail({ entry, onClose }: EntryDetailProps) {
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-lg">{typeInfo.emoji}</span>
             <h2 className="truncate text-lg font-bold text-[var(--text)]">{entry.title}</h2>
-            {entry.featured && <span style={{ color: "#facc15" }}>{"\u2605"}</span>}
+            {entry.featured && <span style={{ color: "var(--star-color)" }}>{"\u2605"}</span>}
           </div>
           <button onClick={onClose} className="shrink-0 rounded-[6px] p-1 text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
