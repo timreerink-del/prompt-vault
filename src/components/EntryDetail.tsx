@@ -34,10 +34,10 @@ export default function EntryDetail({ entry, onClose }: EntryDetailProps) {
     : "";
 
   return (
-    <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-12 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-2 pt-6 sm:p-4 sm:pt-12 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-2xl rounded-[8px] border border-[var(--border)] bg-[var(--surface)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-lg">{typeInfo.emoji}</span>
             <h2 className="truncate text-lg font-bold text-[var(--text)]">{entry.title}</h2>
@@ -51,7 +51,7 @@ export default function EntryDetail({ entry, onClose }: EntryDetailProps) {
         </div>
 
         {/* Body */}
-        <div className="max-h-[calc(100vh-200px)] overflow-y-auto px-6 py-5 space-y-5">
+        <div className="max-h-[calc(100vh-200px)] overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 space-y-4 sm:space-y-5">
           {/* Description */}
           <p className="text-sm text-[var(--muted)]">{entry.description}</p>
 
@@ -155,7 +155,7 @@ export default function EntryDetail({ entry, onClose }: EntryDetailProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end border-t border-[var(--border)] px-6 py-3">
+        <div className="flex items-center justify-end border-t border-[var(--border)] px-4 py-3 sm:px-6">
           <button onClick={onClose} className="rounded-[6px] px-3 py-1.5 text-xs text-[var(--muted)] hover:text-[var(--text)]">
             Close
           </button>

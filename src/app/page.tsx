@@ -53,7 +53,7 @@ export default function Home() {
           onToggleSidebar={() => setSidebarOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto px-6 pb-8">
+        <main className="flex-1 overflow-y-auto px-3 pb-8 sm:px-6">
           {loading ? (
             <div className="flex items-center justify-center py-24">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
