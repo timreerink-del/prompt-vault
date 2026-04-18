@@ -9,6 +9,7 @@ const CATEGORIES: { value: CategoryFilter; label: string; emoji: string }[] = [
   { value: "prompt", label: "Prompts", emoji: "\uD83D\uDCAC" },
   { value: "skill", label: "Skills", emoji: "\u26A1" },
   { value: "agent_workflow", label: "Agents & Workflows", emoji: "\uD83E\uDD16" },
+  { value: "agent_experience", label: "Agent Experience", emoji: "\uD83E\uDDED" },
   { value: "resource", label: "Resources", emoji: "\uD83D\uDCE6" },
 ];
 

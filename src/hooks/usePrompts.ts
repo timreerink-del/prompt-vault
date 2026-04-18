@@ -4,9 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Entry } from "@/lib/queries";
 
-export type CategoryFilter = "all" | "starred" | "prompt" | "skill" | "agent_workflow" | "resource";
+export type CategoryFilter = "all" | "starred" | "prompt" | "skill" | "agent_workflow" | "agent_experience" | "resource";
 export type StatusFilter = "all" | "published" | "draft" | "archived";
 export type SortOption = "recent" | "az";
+
+const AGENT_EXPERIENCE_TAG = "agent-experience";
 
 export function usePrompts() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -44,6 +46,8 @@ export function usePrompts() {
 
     if (categoryFilter === "starred") {
       result = result.filter((e) => e.featured);
+    } else if (categoryFilter === "agent_experience") {
+      result = result.filter((e) => e.tags.includes(AGENT_EXPERIENCE_TAG));
     } else if (categoryFilter !== "all") {
       result = result.filter((e) => e.type === categoryFilter || e.category === categoryFilter);
     }
@@ -83,6 +87,7 @@ export function usePrompts() {
     prompt: entries.filter((e) => e.type === "prompt" || e.category === "prompt").length,
     skill: entries.filter((e) => e.type === "skill" || e.category === "skill").length,
     agent_workflow: entries.filter((e) => e.type === "agent_workflow" || e.category === "agent" || e.category === "workflow").length,
+    agent_experience: entries.filter((e) => e.tags.includes(AGENT_EXPERIENCE_TAG)).length,
     resource: entries.filter((e) => e.type === "resource").length,
   };
 
