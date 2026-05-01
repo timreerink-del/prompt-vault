@@ -98,20 +98,26 @@ async function seed() {
     const uxPath = path.join(__dirname, '../src/data/seed-ux-collection.ts');
     const scoutPath = path.join(__dirname, '../src/data/seed-scout-w15.ts');
     const agentExperiencePath = path.join(__dirname, '../src/data/seed-agent-experience.ts');
+    const scoutW17Path = path.join(__dirname, '../src/data/seed-scout-w17.ts');
+    const scoutW18Path = path.join(__dirname, '../src/data/seed-scout-w18.ts');
 
     const seedData = loadSeedData(seedPath);
     const agentData = loadSeedData(agentPath);
     const uxData = loadSeedData(uxPath);
     const scoutData = loadSeedData(scoutPath);
     const agentExperienceData = loadSeedData(agentExperiencePath);
+    const scoutW17Data = loadSeedData(scoutW17Path);
+    const scoutW18Data = loadSeedData(scoutW18Path);
 
     console.log(`Loaded ${seedData.length} items from seed.ts`);
     console.log(`Loaded ${agentData.length} items from seed-agents.ts`);
     console.log(`Loaded ${uxData.length} items from seed-ux-collection.ts`);
     console.log(`Loaded ${scoutData.length} items from seed-scout-w15.ts`);
     console.log(`Loaded ${agentExperienceData.length} items from seed-agent-experience.ts`);
+    console.log(`Loaded ${scoutW17Data.length} items from seed-scout-w17.ts`);
+    console.log(`Loaded ${scoutW18Data.length} items from seed-scout-w18.ts`);
 
-    const allItems = [...seedData, ...agentData, ...uxData, ...scoutData, ...agentExperienceData];
+    const allItems = [...seedData, ...agentData, ...uxData, ...scoutData, ...agentExperienceData, ...scoutW17Data, ...scoutW18Data];
     console.log(`Total items to insert: ${allItems.length}`);
 
     // Transform all items

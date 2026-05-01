@@ -67,12 +67,16 @@ async function seed() {
   const { AGENT_DATA } = await import("../src/data/seed-agents");
   const { UX_COLLECTION } = await import("../src/data/seed-ux-collection");
   const { AGENT_EXPERIENCE_DATA } = await import("../src/data/seed-agent-experience");
+  const { SCOUT_W17_DATA } = await import("../src/data/seed-scout-w17");
+  const { SCOUT_W18_DATA } = await import("../src/data/seed-scout-w18");
 
   const allItems: SeedItem[] = [
     ...SEED_DATA,
     ...AGENT_DATA,
     ...UX_COLLECTION,
     ...AGENT_EXPERIENCE_DATA,
+    ...SCOUT_W17_DATA,
+    ...SCOUT_W18_DATA,
   ];
 
   console.log(`Found ${allItems.length} items to seed`);
