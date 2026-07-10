@@ -415,13 +415,23 @@
   const catchContinueBtn = document.getElementById("catch-continue");
 
   let catchState = null;
+  let ballDrag = null;
+  const SWIPE_MIN_DISTANCE = 70;
+
+  function resetBallPosition() {
+    catchBallBtn.style.transition = "none";
+    catchBallBtn.style.transform = "translate(0, 0) scale(1)";
+    catchBallBtn.style.opacity = "1";
+    void catchBallBtn.offsetWidth;
+  }
 
   function openCatch(inst) {
     catchState = { inst, tapsDone: 0, tapsNeeded: inst.species.vangKeer, busy: false };
     catchCritterEl.className = "catch-critter";
     catchCritterEl.innerHTML = renderAnimalSVG(inst.species, { size: 160 });
-    catchHint.textContent = "Tik op de bal om het diertje te vangen!";
+    catchHint.textContent = "Veeg de bal omhoog om het diertje te vangen!";
     catchResult.classList.add("hidden");
+    resetBallPosition();
     catchOverlay.classList.remove("hidden");
   }
 
@@ -429,26 +439,59 @@
     catchOverlay.classList.add("hidden");
   }
 
-  catchBallBtn.addEventListener("click", () => {
-    if (!catchState || catchState.busy) return;
+  function throwBall() {
     catchState.busy = true;
     Audio.SFX.worp();
-    catchBallBtn.classList.remove("thrown"); void catchBallBtn.offsetWidth; catchBallBtn.classList.add("thrown");
+    catchBallBtn.style.transition = "transform 0.35s cubic-bezier(.2,.8,.4,1), opacity 0.3s ease 0.15s";
+    catchBallBtn.style.transform = "translate(0, -160px) scale(0.55)";
+    catchBallBtn.style.opacity = "0.15";
 
     setTimeout(() => {
       catchState.tapsDone += 1;
       Audio.SFX.wobble();
       Audio.vibrate(20);
       catchCritterEl.classList.remove("wobble"); void catchCritterEl.offsetWidth; catchCritterEl.classList.add("wobble");
+      resetBallPosition();
 
       if (catchState.tapsDone >= catchState.tapsNeeded) {
         setTimeout(() => finishCatch(true), 420);
       } else {
-        catchHint.textContent = "Bijna! Tik nog een keer! 💪";
+        catchHint.textContent = "Bijna! Veeg nog een keer omhoog! 💪";
         catchState.busy = false;
       }
-    }, 480);
+    }, 380);
+  }
+
+  catchBallBtn.addEventListener("pointerdown", (ev) => {
+    if (!catchState || catchState.busy) return;
+    catchBallBtn.setPointerCapture(ev.pointerId);
+    catchBallBtn.style.transition = "none";
+    ballDrag = { startX: ev.clientX, startY: ev.clientY, dy: 0 };
   });
+
+  catchBallBtn.addEventListener("pointermove", (ev) => {
+    if (!ballDrag) return;
+    const dx = ev.clientX - ballDrag.startX;
+    ballDrag.dy = ev.clientY - ballDrag.startY;
+    const clampedY = Math.max(-140, Math.min(30, ballDrag.dy));
+    const clampedX = Math.max(-50, Math.min(50, dx * 0.4));
+    catchBallBtn.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+  });
+
+  function endBallDrag() {
+    if (!ballDrag || !catchState || catchState.busy) { ballDrag = null; return; }
+    const swipedUp = ballDrag.dy <= -SWIPE_MIN_DISTANCE;
+    ballDrag = null;
+    if (swipedUp) {
+      throwBall();
+    } else {
+      catchBallBtn.style.transition = "transform 0.25s ease-out";
+      catchBallBtn.style.transform = "translate(0, 0)";
+      catchHint.textContent = "Veeg met kracht omhoog om te gooien! 💪";
+    }
+  }
+  catchBallBtn.addEventListener("pointerup", endBallDrag);
+  catchBallBtn.addEventListener("pointercancel", endBallDrag);
 
   function burstConfetti(container, count) {
     const colors = ["#ff6b8a", "#ffcf4d", "#33b06b", "#3aa0e0", "#a06bff", "#ff9a4d"];
