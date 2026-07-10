@@ -123,16 +123,15 @@
   <!-- ===== VANGST-OVERLAY ===== -->
   <div id="catch-overlay" class="overlay hidden">
     <div class="catch-sky"></div>
-    <div class="catch-stage">
-      <div id="catch-sparkles" class="catch-sparkles"></div>
+    <p id="catch-hint" class="catch-hint">Sleep de bal naar de cirkel om te gooien!</p>
+    <div id="catch-field" class="catch-field">
+      <div id="catch-target-ring" class="catch-target-ring"></div>
+      <div id="catch-impact-flash" class="catch-impact-flash"></div>
       <div id="catch-critter" class="catch-critter"></div>
-      <div id="catch-ball" class="catch-ball"></div>
+      <div id="catch-ball" class="catch-ball-obj" role="button" aria-label="Sleep de bal naar het diertje">
+        <div class="ball-shine"></div>
+      </div>
     </div>
-    <p id="catch-hint" class="catch-hint">Veeg de bal omhoog om het diertje te vangen!</p>
-    <div class="swipe-hint-arrow" aria-hidden="true">⬆️</div>
-    <button id="catch-ball-btn" class="round-btn catch-ball-btn" type="button" aria-label="Veeg omhoog om het dier te vangen">
-      <span class="ball-top"></span><span class="ball-bottom"></span>
-    </button>
     <div id="catch-result" class="catch-result hidden">
       <div id="catch-result-title" class="catch-result-title">Gevangen!</div>
       <div id="catch-result-sub" class="catch-result-sub"></div>

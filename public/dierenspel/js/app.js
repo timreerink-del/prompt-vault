@@ -405,33 +405,52 @@
 
   // ---------------------------------------------------------------- vang-minispel
   const catchOverlay = document.getElementById("catch-overlay");
+  const catchField = document.getElementById("catch-field");
+  const catchTargetRing = document.getElementById("catch-target-ring");
+  const catchImpactFlash = document.getElementById("catch-impact-flash");
   const catchCritterEl = document.getElementById("catch-critter");
-  const catchBallBtn = document.getElementById("catch-ball-btn");
+  const catchBallEl = document.getElementById("catch-ball");
   const catchHint = document.getElementById("catch-hint");
   const catchResult = document.getElementById("catch-result");
   const catchResultTitle = document.getElementById("catch-result-title");
   const catchResultSub = document.getElementById("catch-result-sub");
-  const catchSparkles = document.getElementById("catch-sparkles");
   const catchContinueBtn = document.getElementById("catch-continue");
 
   let catchState = null;
   let ballDrag = null;
-  const SWIPE_MIN_DISTANCE = 70;
+  const THROW_MIN_DISTANCE = 55;
 
-  function resetBallPosition() {
-    catchBallBtn.style.transition = "none";
-    catchBallBtn.style.transform = "translate(0, 0) scale(1)";
-    catchBallBtn.style.opacity = "1";
-    void catchBallBtn.offsetWidth;
+  function getCenter(el) {
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  function resetBallToRest() {
+    catchBallEl.classList.remove("dragging", "flying", "wobble-anim");
+    catchBallEl.style.transition = "none";
+    catchBallEl.style.transform = "translate(0px, 0px) scale(1) rotate(0deg)";
+    void catchBallEl.offsetWidth;
+  }
+
+  function spawnTrailDot(clientX, clientY) {
+    const fieldRect = catchField.getBoundingClientRect();
+    const dot = document.createElement("div");
+    dot.className = "ball-trail-dot";
+    dot.style.left = (clientX - fieldRect.left) + "px";
+    dot.style.top = (clientY - fieldRect.top) + "px";
+    catchField.appendChild(dot);
+    dot.addEventListener("animationend", () => dot.remove());
   }
 
   function openCatch(inst) {
     catchState = { inst, tapsDone: 0, tapsNeeded: inst.species.vangKeer, busy: false };
     catchCritterEl.className = "catch-critter";
-    catchCritterEl.innerHTML = renderAnimalSVG(inst.species, { size: 160 });
-    catchHint.textContent = "Veeg de bal omhoog om het diertje te vangen!";
+    catchCritterEl.innerHTML = renderAnimalSVG(inst.species, { size: 128 });
+    catchTargetRing.className = "catch-target-ring rarity-" + inst.species.rarity;
+    catchImpactFlash.classList.remove("show");
+    resetBallToRest();
+    catchHint.textContent = "Sleep de bal naar de cirkel om te gooien!";
     catchResult.classList.add("hidden");
-    resetBallPosition();
     catchOverlay.classList.remove("hidden");
   }
 
@@ -439,59 +458,104 @@
     catchOverlay.classList.add("hidden");
   }
 
-  function throwBall() {
-    catchState.busy = true;
-    Audio.SFX.worp();
-    catchBallBtn.style.transition = "transform 0.35s cubic-bezier(.2,.8,.4,1), opacity 0.3s ease 0.15s";
-    catchBallBtn.style.transform = "translate(0, -160px) scale(0.55)";
-    catchBallBtn.style.opacity = "0.15";
-
-    setTimeout(() => {
-      catchState.tapsDone += 1;
-      Audio.SFX.wobble();
-      Audio.vibrate(20);
-      catchCritterEl.classList.remove("wobble"); void catchCritterEl.offsetWidth; catchCritterEl.classList.add("wobble");
-      resetBallPosition();
-
-      if (catchState.tapsDone >= catchState.tapsNeeded) {
-        setTimeout(() => finishCatch(true), 420);
-      } else {
-        catchHint.textContent = "Bijna! Veeg nog een keer omhoog! 💪";
-        catchState.busy = false;
-      }
-    }, 380);
-  }
-
-  catchBallBtn.addEventListener("pointerdown", (ev) => {
+  catchBallEl.addEventListener("pointerdown", (ev) => {
     if (!catchState || catchState.busy) return;
-    catchBallBtn.setPointerCapture(ev.pointerId);
-    catchBallBtn.style.transition = "none";
-    ballDrag = { startX: ev.clientX, startY: ev.clientY, dy: 0 };
+    Audio.unlock();
+    catchBallEl.setPointerCapture(ev.pointerId);
+    catchBallEl.classList.add("dragging");
+    ballDrag = {
+      grabX: ev.clientX - getCenter(catchBallEl).x,
+      grabY: ev.clientY - getCenter(catchBallEl).y,
+      restCenter: getCenter(catchBallEl),
+      curX: 0, curY: 0,
+    };
   });
 
-  catchBallBtn.addEventListener("pointermove", (ev) => {
+  catchBallEl.addEventListener("pointermove", (ev) => {
     if (!ballDrag) return;
-    const dx = ev.clientX - ballDrag.startX;
-    ballDrag.dy = ev.clientY - ballDrag.startY;
-    const clampedY = Math.max(-140, Math.min(30, ballDrag.dy));
-    const clampedX = Math.max(-50, Math.min(50, dx * 0.4));
-    catchBallBtn.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+    const targetCenterX = ev.clientX - ballDrag.grabX;
+    const targetCenterY = ev.clientY - ballDrag.grabY;
+    ballDrag.curX = targetCenterX - ballDrag.restCenter.x;
+    ballDrag.curY = targetCenterY - ballDrag.restCenter.y;
+    catchBallEl.style.transform = `translate(${ballDrag.curX}px, ${ballDrag.curY}px)`;
   });
 
   function endBallDrag() {
     if (!ballDrag || !catchState || catchState.busy) { ballDrag = null; return; }
-    const swipedUp = ballDrag.dy <= -SWIPE_MIN_DISTANCE;
+    const drag = ballDrag;
     ballDrag = null;
-    if (swipedUp) {
-      throwBall();
-    } else {
-      catchBallBtn.style.transition = "transform 0.25s ease-out";
-      catchBallBtn.style.transform = "translate(0, 0)";
-      catchHint.textContent = "Veeg met kracht omhoog om te gooien! 💪";
+    catchBallEl.classList.remove("dragging");
+
+    const validThrow = -drag.curY > THROW_MIN_DISTANCE;
+    if (!validThrow) {
+      catchHint.textContent = "Til de bal op en gooi hem in de cirkel! 💪";
+      catchBallEl.style.transition = "transform 0.4s cubic-bezier(.3,-0.3,.6,1.4)";
+      catchBallEl.style.transform = "translate(0px, 0px)";
+      setTimeout(() => { if (!ballDrag) catchBallEl.style.transition = "none"; }, 420);
+      return;
     }
+    throwBallAlongArc(drag);
   }
-  catchBallBtn.addEventListener("pointerup", endBallDrag);
-  catchBallBtn.addEventListener("pointercancel", endBallDrag);
+  catchBallEl.addEventListener("pointerup", endBallDrag);
+  catchBallEl.addEventListener("pointercancel", endBallDrag);
+
+  function throwBallAlongArc(drag) {
+    catchState.busy = true;
+    catchBallEl.classList.add("flying");
+    Audio.SFX.worp();
+
+    const start = { x: drag.curX, y: drag.curY };
+    const critterCenter = getCenter(catchCritterEl);
+    const end = {
+      x: critterCenter.x - drag.restCenter.x,
+      y: critterCenter.y - drag.restCenter.y,
+    };
+    const control = { x: (start.x + end.x) / 2, y: Math.min(start.y, end.y) - 90 };
+
+    const duration = 360;
+    const t0 = performance.now();
+
+    function frame(now) {
+      const t = Math.min(1, (now - t0) / duration);
+      const u = 1 - t;
+      const x = u * u * start.x + 2 * u * t * control.x + t * t * end.x;
+      const y = u * u * start.y + 2 * u * t * control.y + t * t * end.y;
+      catchBallEl.style.transform = `translate(${x}px, ${y}px) scale(${1 - 0.25 * t}) rotate(${t * 300}deg)`;
+      if (Math.random() < 0.6) spawnTrailDot(drag.restCenter.x + x, drag.restCenter.y + y);
+      if (t < 1) requestAnimationFrame(frame);
+      else onBallImpact();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function onBallImpact() {
+    catchImpactFlash.classList.remove("show"); void catchImpactFlash.offsetWidth; catchImpactFlash.classList.add("show");
+    catchTargetRing.classList.add("burst");
+    catchCritterEl.classList.add("impact");
+    Audio.SFX.raak();
+    Audio.vibrate(15);
+
+    setTimeout(() => {
+      catchState.tapsDone += 1;
+      catchBallEl.classList.add("wobble-anim");
+      Audio.SFX.wobble();
+      Audio.vibrate(20);
+
+      setTimeout(() => {
+        if (catchState.tapsDone >= catchState.tapsNeeded) {
+          setTimeout(() => finishCatch(true), 200);
+        } else {
+          resetBallToRest();
+          catchTargetRing.classList.remove("burst"); void catchTargetRing.offsetWidth;
+          catchTargetRing.classList.remove("rarity-bijzonder", "rarity-zeldzaam");
+          catchTargetRing.classList.add("rarity-" + catchState.inst.species.rarity);
+          catchCritterEl.classList.remove("impact");
+          catchHint.textContent = "Bijna! Gooi nog een keer! 💪";
+          catchState.busy = false;
+        }
+      }, 650);
+    }, 260);
+  }
 
   function burstConfetti(container, count) {
     const colors = ["#ff6b8a", "#ffcf4d", "#33b06b", "#3aa0e0", "#a06bff", "#ff9a4d"];
@@ -511,7 +575,6 @@
   function finishCatch(success) {
     const inst = catchState.inst;
     if (success) {
-      catchCritterEl.classList.add("caught");
       Audio.SFX.gevangen();
       Audio.vibrate([30, 50, 30, 50, 60]);
       burstConfetti(catchOverlay, 30);
