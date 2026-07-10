@@ -402,11 +402,16 @@ h1, h2, p { margin: 0; }
 .catch-target-ring.rarity-bijzonder { box-shadow: 0 0 0 3px rgba(255,204,77,0.65), inset 0 0 18px rgba(255,255,255,0.3); }
 .catch-target-ring.rarity-zeldzaam { box-shadow: 0 0 0 3px rgba(255,107,94,0.7), inset 0 0 18px rgba(255,255,255,0.3); }
 .catch-target-ring.burst { animation: ringburst 0.4s ease-out forwards; }
+.catch-target-ring.fail-flash { animation: ringfail 0.45s ease-out; }
 @keyframes ringpulse {
   0%, 100% { transform: scale(0.8); opacity: 0.55; }
   50% { transform: scale(1); opacity: 0.95; }
 }
 @keyframes ringburst { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes ringfail {
+  0% { transform: scale(1); box-shadow: 0 0 0 3px rgba(255,70,60,0.85), inset 0 0 18px rgba(255,70,60,0.35); }
+  100% { transform: scale(0.8); box-shadow: 0 0 0 3px rgba(255,70,60,0), inset 0 0 18px rgba(255,70,60,0); }
+}
 
 .catch-impact-flash {
   position: absolute; left: 50%; top: 26%; width: 150px; height: 150px; margin: -75px 0 0 -75px;
@@ -426,23 +431,49 @@ h1, h2, p { margin: 0; }
 @keyframes catchidle { 0%,100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.05) rotate(2deg); } }
 @keyframes caughtpop { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.2); opacity: 0; } }
 
-/* De bal — sleep 'm vanuit de rustpositie onderin naar de mikcirkel */
-.catch-ball-obj {
+/* Spookbal — speelt de gooi-beweging automatisch voor totdat het kind zelf de bal aanraakt */
+.catch-ball-ghost {
   position: absolute; left: 50%; bottom: 4%; width: 72px; height: 72px; margin-left: -36px;
-  border-radius: 50%; touch-action: none; cursor: grab; z-index: 5;
+  border-radius: 50%; pointer-events: none; opacity: 0; z-index: 3;
+  background: linear-gradient(180deg, #ff6b5e 0%, #ff6b5e 48%, #fff 52%, #fff 100%);
+  border: 4px solid #fff;
+  animation: ghostthrow 2.4s ease-in-out infinite;
+}
+.catch-ball-ghost.hidden { display: none; }
+@keyframes ghostthrow {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  10% { opacity: 0.6; }
+  46% { transform: translate(0, -230px) scale(0.8); opacity: 0.6; }
+  58% { opacity: 0; }
+  100% { transform: translate(0, 0) scale(1); opacity: 0; }
+}
+
+/* Grote onzichtbare grijpzone rond de bal, zodat een duim 'm makkelijk raakt */
+.catch-ball-hit {
+  position: absolute; left: 50%; bottom: 2%; width: 116px; height: 116px; margin-left: -58px;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: none; cursor: grab; z-index: 5;
+}
+.catch-ball-hit.dragging { cursor: grabbing; }
+
+/* De zichtbare bal — sleep 'm vanuit de rustpositie naar de mikcirkel.
+   Animatie op dit element is volledig JS-gestuurd via één actieve klasse
+   tegelijk (idle-bob / wobble-anim), zodat er nooit twee keyframe-animaties
+   om dezelfde transform-eigenschap kunnen strijden. */
+.catch-ball-obj {
+  position: relative; width: 72px; height: 72px; border-radius: 50%;
   background: linear-gradient(180deg, #ff6b5e 0%, #ff6b5e 48%, #fff 52%, #fff 100%);
   box-shadow: 0 8px 0 #c94c3f, var(--shadow-soft);
   border: 4px solid #fff;
-  animation: ballidle 1.8s ease-in-out infinite;
 }
 .catch-ball-obj::after {
   content: ""; position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; border-radius: 50%;
   background: #fff; border: 4px solid #2c2620; transform: translate(-50%, -50%);
 }
 .ball-shine { position: absolute; top: 14%; left: 20%; width: 30%; height: 22%; border-radius: 50%; background: rgba(255,255,255,0.55); }
-.catch-ball-obj.dragging { animation: none; cursor: grabbing; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
-.catch-ball-obj.flying { animation: none; }
+.catch-ball-obj.idle-bob { animation: ballidle 1.8s ease-in-out infinite; }
 .catch-ball-obj.wobble-anim { animation: ballwobble 0.5s ease-in-out; }
+.catch-ball-hit.dragging .catch-ball-obj { box-shadow: 0 4px 18px rgba(0,0,0,0.4); transform: scale(1.08); }
 @keyframes ballidle { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 @keyframes ballwobble {
   0%, 100% { transform: rotate(0deg); }
@@ -450,6 +481,13 @@ h1, h2, p { margin: 0; }
   40% { transform: rotate(14deg); }
   60% { transform: rotate(-10deg); }
   80% { transform: rotate(6deg); }
+}
+.catch-ball-hit.drop-fail { animation: balldropfail 0.5s cubic-bezier(.36,0,.66,-0.4); }
+@keyframes balldropfail {
+  0% { transform: translate(var(--dropx, 0px), var(--dropy, 0px)) rotate(0deg); }
+  45% { transform: translate(calc(var(--dropx, 0px) * 0.25), 46px) rotate(-16deg); }
+  75% { transform: translate(0px, -14px) rotate(8deg); }
+  100% { transform: translate(0px, 0px) rotate(0deg); }
 }
 
 .ball-trail-dot {

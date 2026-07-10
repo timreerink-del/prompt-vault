@@ -409,7 +409,9 @@
   const catchTargetRing = document.getElementById("catch-target-ring");
   const catchImpactFlash = document.getElementById("catch-impact-flash");
   const catchCritterEl = document.getElementById("catch-critter");
+  const catchBallGhost = document.getElementById("catch-ball-ghost");
   const catchBallEl = document.getElementById("catch-ball");
+  const catchBallVisual = document.getElementById("catch-ball-visual");
   const catchHint = document.getElementById("catch-hint");
   const catchResult = document.getElementById("catch-result");
   const catchResultTitle = document.getElementById("catch-result-title");
@@ -418,7 +420,8 @@
 
   let catchState = null;
   let ballDrag = null;
-  const THROW_MIN_DISTANCE = 55;
+  const THROW_MIN_DISTANCE = 45; // echte vingerbeweging nodig, los van de optische lift hieronder
+  const FINGER_LIFT = 64; // bal wordt dit aantal px boven de vinger getekend, zodat een duim 'm niet verbergt
 
   function getCenter(el) {
     const r = el.getBoundingClientRect();
@@ -426,9 +429,13 @@
   }
 
   function resetBallToRest() {
-    catchBallEl.classList.remove("dragging", "flying", "wobble-anim");
+    catchBallEl.classList.remove("dragging", "flying", "drop-fail");
+    catchBallEl.style.removeProperty("--dropx");
+    catchBallEl.style.removeProperty("--dropy");
     catchBallEl.style.transition = "none";
-    catchBallEl.style.transform = "translate(0px, 0px) scale(1) rotate(0deg)";
+    catchBallEl.style.transform = "translate(0px, 0px)";
+    catchBallVisual.classList.remove("wobble-anim");
+    catchBallVisual.classList.add("idle-bob");
     void catchBallEl.offsetWidth;
   }
 
@@ -449,7 +456,8 @@
     catchTargetRing.className = "catch-target-ring rarity-" + inst.species.rarity;
     catchImpactFlash.classList.remove("show");
     resetBallToRest();
-    catchHint.textContent = "Sleep de bal naar de cirkel om te gooien!";
+    catchBallGhost.classList.remove("hidden");
+    catchHint.textContent = "👉 Pak de bal en gooi hem in de cirkel!";
     catchResult.classList.add("hidden");
     catchOverlay.classList.remove("hidden");
   }
@@ -458,26 +466,34 @@
     catchOverlay.classList.add("hidden");
   }
 
+  function updateBallDragRender(ev) {
+    const followX = ev.clientX;
+    const followY = ev.clientY - FINGER_LIFT;
+    ballDrag.curX = followX - ballDrag.restCenter.x;
+    ballDrag.curY = followY - ballDrag.restCenter.y;
+    ballDrag.rawDX = ev.clientX - ballDrag.rawStartX;
+    ballDrag.rawDY = ev.clientY - ballDrag.rawStartY;
+    catchBallEl.style.transform = `translate(${ballDrag.curX}px, ${ballDrag.curY}px)`;
+  }
+
   catchBallEl.addEventListener("pointerdown", (ev) => {
     if (!catchState || catchState.busy) return;
     Audio.unlock();
+    catchBallGhost.classList.add("hidden");
     catchBallEl.setPointerCapture(ev.pointerId);
     catchBallEl.classList.add("dragging");
+    catchBallVisual.classList.remove("idle-bob");
     ballDrag = {
-      grabX: ev.clientX - getCenter(catchBallEl).x,
-      grabY: ev.clientY - getCenter(catchBallEl).y,
       restCenter: getCenter(catchBallEl),
-      curX: 0, curY: 0,
+      rawStartX: ev.clientX, rawStartY: ev.clientY,
+      curX: 0, curY: 0, rawDX: 0, rawDY: 0,
     };
+    updateBallDragRender(ev);
   });
 
   catchBallEl.addEventListener("pointermove", (ev) => {
     if (!ballDrag) return;
-    const targetCenterX = ev.clientX - ballDrag.grabX;
-    const targetCenterY = ev.clientY - ballDrag.grabY;
-    ballDrag.curX = targetCenterX - ballDrag.restCenter.x;
-    ballDrag.curY = targetCenterY - ballDrag.restCenter.y;
-    catchBallEl.style.transform = `translate(${ballDrag.curX}px, ${ballDrag.curY}px)`;
+    updateBallDragRender(ev);
   });
 
   function endBallDrag() {
@@ -486,12 +502,9 @@
     ballDrag = null;
     catchBallEl.classList.remove("dragging");
 
-    const validThrow = -drag.curY > THROW_MIN_DISTANCE;
+    const validThrow = -drag.rawDY > THROW_MIN_DISTANCE;
     if (!validThrow) {
-      catchHint.textContent = "Til de bal op en gooi hem in de cirkel! 💪";
-      catchBallEl.style.transition = "transform 0.4s cubic-bezier(.3,-0.3,.6,1.4)";
-      catchBallEl.style.transform = "translate(0px, 0px)";
-      setTimeout(() => { if (!ballDrag) catchBallEl.style.transition = "none"; }, 420);
+      dropBallFail(drag);
       return;
     }
     throwBallAlongArc(drag);
@@ -499,10 +512,27 @@
   catchBallEl.addEventListener("pointerup", endBallDrag);
   catchBallEl.addEventListener("pointercancel", endBallDrag);
 
+  function dropBallFail(drag) {
+    Audio.SFX.mis();
+    Audio.vibrate(15);
+    catchHint.textContent = "Til de bal echt op en gooi hem naar de cirkel! 💪";
+    catchTargetRing.classList.remove("fail-flash"); void catchTargetRing.offsetWidth; catchTargetRing.classList.add("fail-flash");
+    catchBallEl.style.setProperty("--dropx", drag.curX + "px");
+    catchBallEl.style.setProperty("--dropy", drag.curY + "px");
+    catchBallEl.classList.add("drop-fail");
+    catchBallEl.addEventListener("animationend", function onEnd() {
+      catchBallEl.removeEventListener("animationend", onEnd);
+      catchBallEl.classList.remove("drop-fail");
+      catchBallEl.style.transform = "translate(0px, 0px)";
+      catchBallVisual.classList.add("idle-bob");
+    }, { once: true });
+  }
+
   function throwBallAlongArc(drag) {
     catchState.busy = true;
     catchBallEl.classList.add("flying");
     Audio.SFX.worp();
+    Audio.vibrate(10);
 
     const start = { x: drag.curX, y: drag.curY };
     const critterCenter = getCenter(catchCritterEl);
@@ -537,11 +567,12 @@
 
     setTimeout(() => {
       catchState.tapsDone += 1;
-      catchBallEl.classList.add("wobble-anim");
+      catchBallVisual.classList.add("wobble-anim");
       Audio.SFX.wobble();
       Audio.vibrate(20);
 
       setTimeout(() => {
+        catchBallVisual.classList.remove("wobble-anim");
         if (catchState.tapsDone >= catchState.tapsNeeded) {
           setTimeout(() => finishCatch(true), 200);
         } else {

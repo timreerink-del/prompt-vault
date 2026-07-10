@@ -38,6 +38,7 @@
       tone(880, 0.1, 0.14, "triangle", 0.16, 1100);
     },
     worp() { tone(300, 0, 0.15, "square", 0.15, 500); },
+    mis() { tone(260, 0, 0.16, "sine", 0.12, 130); },
     wobble() { tone(220, 0, 0.1, "sine", 0.12, 260); },
     gevangen() {
       tone(523, 0, 0.12, "triangle", 0.2);
