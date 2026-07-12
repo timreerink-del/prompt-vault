@@ -86,6 +86,6 @@
   const butterflySpots = scatter(7, "butterfly", [1, 1], { pathClear: 30 });
 
   global.DierenWereld = {
-    WORLD_W, WORLD_H, START, pathPoints, waterPools, deco, butterflySpots,
+    WORLD_W, WORLD_H, START, pathPoints, waterPools, deco, butterflySpots, nearWater,
   };
 })(window);

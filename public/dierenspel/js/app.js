@@ -3,12 +3,17 @@
   "use strict";
 
   const { SPECIES, RARITY_LABEL, renderAnimalSVG } = window.DierenData;
-  const { WORLD_W, WORLD_H, START, pathPoints, waterPools, deco, butterflySpots } = window.DierenWereld;
+  const { WORLD_W, WORLD_H, START, pathPoints, waterPools, deco, butterflySpots, nearWater } = window.DierenWereld;
   const Audio = window.DierenAudio;
 
   const STORAGE_KEY = "dierenspel_state_v1";
   const RARITY_WEIGHT = { gewoon: 60, bijzonder: 30, zeldzaam: 12 };
   const RARITY_XP = { gewoon: 10, bijzonder: 18, zeldzaam: 28 };
+  const RARITY_CONFETTI = {
+    gewoon: { count: 24, colors: ["#ff6b8a", "#ffcf4d", "#33b06b", "#3aa0e0", "#a06bff", "#ff9a4d"] },
+    bijzonder: { count: 42, colors: ["#ffcf4d", "#ffcc4d", "#ff9a4d", "#33b06b", "#3aa0e0", "#fff2a8"] },
+    zeldzaam: { count: 64, colors: ["#ff6b5e", "#ffcc4d", "#ff9a4d", "#ffe07a", "#fff6c9", "#ff6b8a"] },
+  };
   const MAX_ACTIVE_CRITTERS = 4;
 
   // ---------------------------------------------------------------- state
@@ -46,7 +51,7 @@
     if (leveled) {
       Audio.SFX.levelup();
       Audio.vibrate([30, 40, 30]);
-      showBanner(`Niveau omhoog! Niveau ${state.level} 🎉`, 2400);
+      queueCelebration((done) => showLevelUpCelebration(state.level, done));
     }
   }
 
@@ -69,6 +74,7 @@
   // ---------------------------------------------------------------- HUD
   const hudLevel = document.getElementById("hud-level");
   const hudXpFill = document.getElementById("hud-xp-fill");
+  const hudCaught = document.getElementById("hud-caught");
   const spawnBanner = document.getElementById("spawn-banner");
   let bannerTimer = null;
 
@@ -76,6 +82,7 @@
     hudLevel.textContent = `Niveau ${state.level}`;
     const pct = Math.min(100, (state.xp / xpForLevel(state.level)) * 100);
     hudXpFill.style.width = pct + "%";
+    hudCaught.textContent = `Gevangen: ${Object.keys(state.caught).length}/${SPECIES.length}`;
   }
 
   function showBanner(text, ms) {
@@ -192,7 +199,7 @@
 
   // ---------------------------------------------------------------- camera + speler
   let camX = 0, camY = 0, vw = 0, vh = 0;
-  const player = { x: START.x, y: START.y, target: null, speed: 260, walking: false };
+  const player = { x: START.x, y: START.y, target: null, speed: 260, walking: false, facing: 1 };
 
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
@@ -213,6 +220,7 @@
     playerEl.style.left = player.x + "px";
     playerEl.style.top = player.y + "px";
     playerEl.style.zIndex = String(Math.round(player.y));
+    playerEl.style.transform = player.facing < 0 ? "scaleX(-1)" : "scaleX(1)";
   }
 
   function screenToWorld(clientX, clientY) {
@@ -266,6 +274,28 @@
     }
   }
 
+  // Wandelgedrag per archetype (zelfde idee als ARCHETYPES in animals.js) — elk
+  // dier voelt anders aan op de kaart i.p.v. dat alles hetzelfde rondloopt.
+  const WANDER_BEHAVIOR = {
+    hupper: { mode: "hop", speed: 130, pauseMin: 900, pauseMax: 2200, radius: [40, 90] },
+    vliegend: { mode: "float", speed: 26, pauseMin: 1800, pauseMax: 3200, radius: [20, 50], ampX: 26, ampY: 14, period: 2600 },
+    zwem: { mode: "water", speed: 30, pauseMin: 1500, pauseMax: 3000, radius: [20, 60] },
+    schelp: { mode: "default", speed: 18, pauseMin: 2500, pauseMax: 5000, radius: [30, 100] },
+    rond: { mode: "default", speed: 30, pauseMin: 1500, pauseMax: 4000, radius: [30, 100] },
+    langnek: { mode: "default", speed: 26, pauseMin: 1500, pauseMax: 4000, radius: [30, 100] },
+    stekelig: { mode: "default", speed: 34, pauseMin: 1500, pauseMax: 4000, radius: [30, 100] },
+  };
+  function behaviorFor(species) { return WANDER_BEHAVIOR[species.archetype] || WANDER_BEHAVIOR.rond; }
+
+  function nearestWaterPool(x, y) {
+    let best = null, bestDist = Infinity;
+    waterPools.forEach((w) => {
+      const d = Math.hypot(w.x - x, w.y - y);
+      if (d < bestDist) { bestDist = d; best = w; }
+    });
+    return best;
+  }
+
   function spawnCritterAt(species, x, y, opts) {
     opts = opts || {};
     const id = "c" + (++critterUid);
@@ -273,7 +303,7 @@
     el.className = "critter entering";
     el.dataset.instanceId = id;
     const evolved = false;
-    el.innerHTML = `<div class="critter-shadow"></div><div class="critter-sprite">${renderAnimalSVG(species, { size: 64, evolved })}</div>`;
+    el.innerHTML = `<div class="critter-shadow"></div><div class="critter-sprite">${renderAnimalSVG(species, { size: 64, evolved })}</div><div class="rarity-badge rarity-${species.rarity}"></div>`;
     el.style.left = x + "px";
     el.style.top = y + "px";
     el.style.zIndex = String(Math.round(y));
@@ -298,6 +328,8 @@
       speed: opts.inwardTarget ? 90 : 34,
       nextWanderAt: now + 800,
       expiresAt: now + 55000 + Math.random() * 25000,
+      behavior: behaviorFor(species),
+      phase: Math.random() * Math.PI * 2,
       el, entering: !!opts.inwardTarget,
     };
     activeCritters[id] = inst;
@@ -341,35 +373,57 @@
     setTimeout(() => inst.el.remove(), 520);
   }
 
+  function pickWanderTarget(c) {
+    const b = c.behavior;
+    const [minR, maxR] = b.radius || [30, 100];
+    const dist = minR + Math.random() * (maxR - minR);
+    const angle = Math.random() * Math.PI * 2;
+    let cx = c.anchorX, cy = c.anchorY;
+    if (b.mode === "water") {
+      const pool = nearestWaterPool(c.anchorX, c.anchorY);
+      if (pool) { cx = pool.x; cy = pool.y; }
+    }
+    return {
+      x: clamp(cx + Math.cos(angle) * dist, 20, WORLD_W - 20),
+      y: clamp(cy + Math.sin(angle) * dist, 20, WORLD_H - 20),
+    };
+  }
+
   function updateCritters(dt, now) {
     for (const id in activeCritters) {
       const c = activeCritters[id];
+      const b = c.behavior;
       if (now > c.expiresAt && !c.entering) { removeCritter(id, false); continue; }
       if (c.target) {
         const dx = c.target.x - c.x, dy = c.target.y - c.y;
         const dist = Math.hypot(dx, dy);
         if (dist < 4) {
           c.target = null;
-          c.entering = false;
-          c.speed = 34;
-          c.anchorX = c.x; c.anchorY = c.y;
-          c.nextWanderAt = now + 1500 + Math.random() * 2500;
+          if (c.entering) {
+            c.entering = false;
+            c.speed = b.speed;
+            c.anchorX = c.x; c.anchorY = c.y;
+          }
+          c.nextWanderAt = now + b.pauseMin + Math.random() * (b.pauseMax - b.pauseMin);
         } else {
           const step = Math.min(dist, c.speed * dt);
           c.x += (dx / dist) * step;
           c.y += (dy / dist) * step;
         }
       } else if (now >= c.nextWanderAt) {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 30 + Math.random() * 70;
-        c.target = {
-          x: clamp(c.anchorX + Math.cos(angle) * dist, 20, WORLD_W - 20),
-          y: clamp(c.anchorY + Math.sin(angle) * dist, 20, WORLD_H - 20),
-        };
+        c.target = pickWanderTarget(c);
       }
-      c.el.style.left = c.x + "px";
-      c.el.style.top = c.y + "px";
-      c.el.style.zIndex = String(Math.round(c.y));
+      // "vliegend" zweeft met een sinusgolf bovenop de trage, logische ankerpositie —
+      // die golf beïnvloedt nooit c.x/c.y zelf, anders raakt het pad-zoeken in de war.
+      let renderX = c.x, renderY = c.y;
+      if (b.mode === "float") {
+        const t = (now / b.period) * Math.PI * 2 + c.phase;
+        renderX += Math.sin(t) * b.ampX;
+        renderY += Math.cos(t) * b.ampY;
+      }
+      c.el.style.left = renderX + "px";
+      c.el.style.top = renderY + "px";
+      c.el.style.zIndex = String(Math.round(renderY));
     }
   }
 
@@ -382,6 +436,7 @@
     if (player.target) {
       const dx = player.target.x - player.x, dy = player.target.y - player.y;
       const dist = Math.hypot(dx, dy);
+      if (Math.abs(dx) > 6) player.facing = dx < 0 ? -1 : 1;
       if (dist < 4) { player.target = null; player.walking = false; }
       else {
         const step = Math.min(dist, player.speed * dt);
@@ -422,6 +477,10 @@
   let ballDrag = null;
   const THROW_MIN_DISTANCE = 45; // echte vingerbeweging nodig, los van de optische lift hieronder
   const FINGER_LIFT = 64; // bal wordt dit aantal px boven de vinger getekend, zodat een duim 'm niet verbergt
+  const CURVE_MIN_DISTANCE = 40; // zijwaartse beweging tijdens de sleep die telt als "curveball"
+  const RING_CYCLE_MS = 1500; // moet gelijk zijn aan de duur van de ringpulse-animatie in style.css
+  const GREAT_THROW_WINDOW = 0.12; // fractie van de cyclus rond het kleinste punt die telt als "geweldige worp"
+  const BONUS_XP = 8;
 
   function getCenter(el) {
     const r = el.getBoundingClientRect();
@@ -450,7 +509,7 @@
   }
 
   function openCatch(inst) {
-    catchState = { inst, tapsDone: 0, tapsNeeded: inst.species.vangKeer, busy: false };
+    catchState = { inst, tapsDone: 0, tapsNeeded: inst.species.vangKeer, busy: false, ringStartTs: performance.now() };
     catchCritterEl.className = "catch-critter";
     catchCritterEl.innerHTML = renderAnimalSVG(inst.species, { size: 128 });
     catchTargetRing.className = "catch-target-ring rarity-" + inst.species.rarity;
@@ -473,6 +532,7 @@
     ballDrag.curY = followY - ballDrag.restCenter.y;
     ballDrag.rawDX = ev.clientX - ballDrag.rawStartX;
     ballDrag.rawDY = ev.clientY - ballDrag.rawStartY;
+    ballDrag.maxAbsDX = Math.max(ballDrag.maxAbsDX, Math.abs(ballDrag.rawDX));
     catchBallEl.style.transform = `translate(${ballDrag.curX}px, ${ballDrag.curY}px)`;
   }
 
@@ -486,7 +546,7 @@
     ballDrag = {
       restCenter: getCenter(catchBallEl),
       rawStartX: ev.clientX, rawStartY: ev.clientY,
-      curX: 0, curY: 0, rawDX: 0, rawDY: 0,
+      curX: 0, curY: 0, rawDX: 0, rawDY: 0, maxAbsDX: 0,
     };
     updateBallDragRender(ev);
   });
@@ -507,7 +567,12 @@
       dropBallFail(drag);
       return;
     }
-    throwBallAlongArc(drag);
+    const isCurve = drag.maxAbsDX > CURVE_MIN_DISTANCE;
+    const elapsed = (performance.now() - catchState.ringStartTs) % RING_CYCLE_MS;
+    const phase = elapsed / RING_CYCLE_MS;
+    const distFromSmallest = Math.min(phase, 1 - phase); // 0 = precies op het kleinste punt van de pulserende ring
+    const isGreatThrow = distFromSmallest < GREAT_THROW_WINDOW;
+    throwBallAlongArc(drag, { isCurve, isGreatThrow });
   }
   catchBallEl.addEventListener("pointerup", endBallDrag);
   catchBallEl.addEventListener("pointercancel", endBallDrag);
@@ -528,7 +593,8 @@
     }, { once: true });
   }
 
-  function throwBallAlongArc(drag) {
+  function throwBallAlongArc(drag, opts) {
+    opts = opts || {};
     catchState.busy = true;
     catchBallEl.classList.add("flying");
     Audio.SFX.worp();
@@ -541,6 +607,7 @@
       y: critterCenter.y - drag.restCenter.y,
     };
     const control = { x: (start.x + end.x) / 2, y: Math.min(start.y, end.y) - 90 };
+    if (opts.isCurve) control.x += drag.rawDX * 0.4;
 
     const duration = 360;
     const t0 = performance.now();
@@ -553,17 +620,27 @@
       catchBallEl.style.transform = `translate(${x}px, ${y}px) scale(${1 - 0.25 * t}) rotate(${t * 300}deg)`;
       if (Math.random() < 0.6) spawnTrailDot(drag.restCenter.x + x, drag.restCenter.y + y);
       if (t < 1) requestAnimationFrame(frame);
-      else onBallImpact();
+      else onBallImpact(opts);
     }
     requestAnimationFrame(frame);
   }
 
-  function onBallImpact() {
+  function onBallImpact(opts) {
+    opts = opts || {};
     catchImpactFlash.classList.remove("show"); void catchImpactFlash.offsetWidth; catchImpactFlash.classList.add("show");
     catchTargetRing.classList.add("burst");
     catchCritterEl.classList.add("impact");
     Audio.SFX.raak();
     Audio.vibrate(15);
+
+    const bonusLabels = [];
+    let bonusXp = 0;
+    if (opts.isCurve) { bonusLabels.push("Curveball"); bonusXp += BONUS_XP; }
+    if (opts.isGreatThrow) { bonusLabels.push("Geweldige worp"); bonusXp += BONUS_XP; }
+    if (bonusXp > 0) {
+      addXP(bonusXp);
+      catchHint.textContent = `${bonusLabels.join(" + ")}! 🌟 +${bonusXp} XP`;
+    }
 
     setTimeout(() => {
       catchState.tapsDone += 1;
@@ -580,16 +657,17 @@
           catchTargetRing.classList.remove("burst"); void catchTargetRing.offsetWidth;
           catchTargetRing.classList.remove("rarity-bijzonder", "rarity-zeldzaam");
           catchTargetRing.classList.add("rarity-" + catchState.inst.species.rarity);
+          catchState.ringStartTs = performance.now();
           catchCritterEl.classList.remove("impact");
-          catchHint.textContent = "Bijna! Gooi nog een keer! 💪";
+          if (bonusXp === 0) catchHint.textContent = "Bijna! Gooi nog een keer! 💪";
           catchState.busy = false;
         }
       }, 650);
     }, 260);
   }
 
-  function burstConfetti(container, count) {
-    const colors = ["#ff6b8a", "#ffcf4d", "#33b06b", "#3aa0e0", "#a06bff", "#ff9a4d"];
+  function burstConfetti(container, count, colors) {
+    colors = colors || ["#ff6b8a", "#ffcf4d", "#33b06b", "#3aa0e0", "#a06bff", "#ff9a4d"];
     for (let i = 0; i < count; i++) {
       const p = document.createElement("div");
       p.className = "confetti-piece";
@@ -608,21 +686,104 @@
     if (success) {
       Audio.SFX.gevangen();
       Audio.vibrate([30, 50, 30, 50, 60]);
-      burstConfetti(catchOverlay, 30);
+      const conf = RARITY_CONFETTI[inst.species.rarity] || RARITY_CONFETTI.gewoon;
+      burstConfetti(catchOverlay, conf.count, conf.colors);
       const res = addCaught(inst.species.id);
       catchResultTitle.textContent = "Gevangen! 🎉";
-      let sub = `${inst.species.naam} — ${res.isFirst ? "Nieuw in je verzameling!" : `Je hebt er nu ${res.entry.count}!`}`;
-      if (res.evolvedNow) sub += ` ✨ Ge-evolueerd naar ${inst.species.evoNaam}!`;
-      catchResultSub.textContent = sub;
+      catchResultSub.textContent = `${inst.species.naam} — ${res.isFirst ? "Nieuw in je verzameling!" : `Je hebt er nu ${res.entry.count}!`}`;
       catchResult.classList.remove("hidden");
+      catchState.pendingEvolution = res.evolvedNow ? inst.species : null;
       removeCritter(inst.id, true);
     }
   }
 
   catchContinueBtn.addEventListener("click", () => {
+    const pendingEvolution = catchState && catchState.pendingEvolution;
     closeCatchOverlay();
     catchState = null;
+    if (pendingEvolution) {
+      queueCelebration((done) => showEvolutionCelebration(pendingEvolution, done));
+    }
+    // Vangst-overlay is nu dicht: speel eventuele opgestapelde vieringen
+    // (niveau omhoog en/of evolutie) alsnog af, in de volgorde waarin ze ontstonden.
+    if (!celebrationBusy) runNextCelebration();
   });
+
+  // ---------------------------------------------------------------- viering (level-up + evolutie)
+  const celebrateOverlay = document.getElementById("celebrate-overlay");
+  const celebrateStage = document.getElementById("celebrate-stage");
+  const celebrateSpriteBefore = document.getElementById("celebrate-sprite-before");
+  const celebrateSpriteAfter = document.getElementById("celebrate-sprite-after");
+  const celebrateFlash = document.getElementById("celebrate-flash");
+  const celebrateTitle = document.getElementById("celebrate-title");
+  const celebrateSub = document.getElementById("celebrate-sub");
+  const celebrateContinueBtn = document.getElementById("celebrate-continue");
+
+  let celebrationQueue = [];
+  let celebrationBusy = false;
+
+  function queueCelebration(fn) {
+    celebrationQueue.push(fn);
+    // Niet meteen starten als de vangst-overlay nog open is — anders staan er twee
+    // overlays over elkaar. In dat geval wordt de wachtrij pas afgespeeld nadat
+    // catchContinueBtn is ingedrukt (zie hieronder).
+    if (!celebrationBusy && catchOverlay.classList.contains("hidden")) runNextCelebration();
+  }
+
+  function runNextCelebration() {
+    const next = celebrationQueue.shift();
+    if (!next) { celebrationBusy = false; return; }
+    celebrationBusy = true;
+    next(runNextCelebration);
+  }
+
+  function showLevelUpCelebration(level, done) {
+    celebrateStage.classList.add("hidden");
+    celebrateContinueBtn.classList.add("hidden");
+    celebrateTitle.textContent = `Niveau ${level}! 🎉`;
+    celebrateSub.textContent = "Je wordt steeds beter in dieren vangen!";
+    celebrateOverlay.classList.remove("hidden");
+    burstConfetti(celebrateOverlay, RARITY_CONFETTI.bijzonder.count, RARITY_CONFETTI.bijzonder.colors);
+    setTimeout(() => {
+      celebrateOverlay.classList.add("hidden");
+      done();
+    }, 2000);
+  }
+
+  function showEvolutionCelebration(species, done) {
+    celebrateStage.classList.remove("hidden");
+    celebrateFlash.classList.remove("show");
+    celebrateSpriteBefore.className = "celebrate-sprite celebrate-breathe";
+    celebrateSpriteBefore.innerHTML = renderAnimalSVG(species, { size: 160, evolved: false });
+    celebrateSpriteAfter.className = "celebrate-sprite hidden";
+    celebrateSpriteAfter.innerHTML = renderAnimalSVG(species, { size: 160, evolved: true });
+    celebrateTitle.textContent = "Evolutie! ✨";
+    celebrateSub.textContent = `${species.naam} verandert...`;
+    celebrateContinueBtn.classList.add("hidden");
+    celebrateOverlay.classList.remove("hidden");
+    Audio.SFX.gevangen();
+
+    setTimeout(() => {
+      celebrateFlash.classList.remove("show"); void celebrateFlash.offsetWidth; celebrateFlash.classList.add("show");
+      celebrateSpriteBefore.classList.add("hidden");
+      celebrateSpriteAfter.className = "celebrate-sprite celebrate-popin";
+      celebrateTitle.textContent = `${species.evoNaam}! ✨`;
+      celebrateSub.textContent = "Wat een prachtige nieuwe vorm!";
+      burstConfetti(celebrateOverlay, RARITY_CONFETTI.zeldzaam.count, RARITY_CONFETTI.zeldzaam.colors);
+      Audio.SFX.levelup();
+      Audio.vibrate([30, 40, 30, 40, 60]);
+    }, 900);
+
+    setTimeout(() => {
+      celebrateContinueBtn.classList.remove("hidden");
+    }, 1400);
+
+    celebrateContinueBtn.addEventListener("click", function onDone() {
+      celebrateContinueBtn.removeEventListener("click", onDone);
+      celebrateOverlay.classList.add("hidden");
+      done();
+    });
+  }
 
   // ---------------------------------------------------------------- verzamelscherm
   const collectionGrid = document.getElementById("collection-grid");
@@ -638,7 +799,7 @@
       if (owned) {
         found++;
         card.innerHTML = `
-          <div class="thumb">${renderAnimalSVG(sp, { size: 56, evolved: owned.evolved })}</div>
+          <div class="thumb">${renderAnimalSVG(sp, { size: 56, evolved: owned.evolved })}<div class="rarity-badge rarity-${sp.rarity}"></div></div>
           <div class="name">${owned.evolved ? sp.evoNaam : sp.naam}</div>
           <div class="count-badge">x${owned.count}</div>
         `;
@@ -676,6 +837,13 @@
   }
 
   // ---------------------------------------------------------------- gevecht
+  const BATTLE_ATTACK_ANIM = {
+    rond: "atk-roll", hupper: "atk-hop", langnek: "atk-peck", stekelig: "atk-spike",
+    vliegend: "atk-dive", schelp: "atk-snap", zwem: "atk-splash",
+  };
+  function attackAnimFor(species) { return BATTLE_ATTACK_ANIM[species.archetype] || "attack"; }
+  function attackSfxFor(species) { return Audio.ARCHETYPE_ATTACK_SFX[species.archetype] || Audio.SFX.aanval; }
+
   const battlePicker = document.getElementById("battle-picker");
   const battleArena = document.getElementById("battle-arena");
   const enemyNameEl = document.getElementById("enemy-name");
@@ -721,8 +889,14 @@
     battle = {
       sp, enemySp, playerHp: playerMaxHp, playerMaxHp, playerAtk,
       enemyHp: enemyMaxHp, enemyMaxHp, enemyAtk, over: false, evolved,
+      playerAttackClass: attackAnimFor(sp), enemyAttackClass: attackAnimFor(enemySp),
     };
 
+    // Reset (defensief): een battle die halverwege een animatie werd verlaten mag
+    // geen oude atk-*-klasse achterlaten op een sprite die voor de volgende battle
+    // hergebruikt wordt.
+    playerSpriteEl.className = "battle-sprite";
+    enemySpriteEl.className = "battle-sprite";
     playerSpriteEl.innerHTML = renderAnimalSVG(sp, { size: 84, evolved });
     enemySpriteEl.innerHTML = renderAnimalSVG(enemySp, { size: 84 });
     playerNameEl.textContent = evolved ? sp.evoNaam : sp.naam;
@@ -745,12 +919,16 @@
 
   btnAttack.addEventListener("click", () => {
     if (!battle || battle.over) return;
+    const thisBattle = battle; // vangt eventuele nog-lopende setTimeouts op als deze battle intussen verlaten wordt
     btnAttack.disabled = true;
     const dmg = Math.max(3, battle.playerAtk + Math.floor(Math.random() * 5) - 2);
     battle.enemyHp = Math.max(0, battle.enemyHp - dmg);
-    Audio.SFX.aanval();
-    playerSpriteEl.classList.remove("attack"); void playerSpriteEl.offsetWidth; playerSpriteEl.classList.add("attack");
-    setTimeout(() => { enemySpriteEl.classList.remove("hit"); void enemySpriteEl.offsetWidth; enemySpriteEl.classList.add("hit"); Audio.SFX.raak(); }, 200);
+    attackSfxFor(battle.sp)();
+    playerSpriteEl.classList.remove(battle.playerAttackClass); void playerSpriteEl.offsetWidth; playerSpriteEl.classList.add(battle.playerAttackClass);
+    setTimeout(() => {
+      if (battle !== thisBattle) return;
+      enemySpriteEl.classList.remove("hit"); void enemySpriteEl.offsetWidth; enemySpriteEl.classList.add("hit"); Audio.SFX.raak();
+    }, 200);
     updateBattleBars();
     battleLog.textContent = `${playerNameEl.textContent} valt aan! -${dmg} HP`;
 
@@ -760,10 +938,15 @@
     }
 
     setTimeout(() => {
+      if (battle !== thisBattle) return;
       const edmg = Math.max(2, battle.enemyAtk + Math.floor(Math.random() * 4) - 1);
       battle.playerHp = Math.max(0, battle.playerHp - edmg);
-      enemySpriteEl.classList.remove("attack"); void enemySpriteEl.offsetWidth; enemySpriteEl.classList.add("attack");
-      setTimeout(() => { playerSpriteEl.classList.remove("hit"); void playerSpriteEl.offsetWidth; playerSpriteEl.classList.add("hit"); }, 200);
+      attackSfxFor(battle.enemySp)();
+      enemySpriteEl.classList.remove(battle.enemyAttackClass); void enemySpriteEl.offsetWidth; enemySpriteEl.classList.add(battle.enemyAttackClass);
+      setTimeout(() => {
+        if (battle !== thisBattle) return;
+        playerSpriteEl.classList.remove("hit"); void playerSpriteEl.offsetWidth; playerSpriteEl.classList.add("hit");
+      }, 200);
       updateBattleBars();
       battleLog.textContent = `${enemyNameEl.textContent} valt terug aan! -${edmg} HP`;
 

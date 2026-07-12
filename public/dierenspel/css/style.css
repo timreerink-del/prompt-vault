@@ -41,12 +41,19 @@ h1, h2, p { margin: 0; }
 /* ---------- Schermen ---------- */
 .screen {
   position: absolute; inset: 0;
-  display: none;
+  display: flex;
   flex-direction: column;
   height: 100dvh;
   overflow: hidden;
+  opacity: 0; visibility: hidden; pointer-events: none; transform: scale(0.98);
+  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s linear 0.22s;
+  z-index: 1;
 }
-.screen.active { display: flex; }
+.screen.active {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: scale(1);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  z-index: 2;
+}
 
 /* ---------- Lucht + wolken (achtergrond, altijd zichtbaar) ---------- */
 .sky {
@@ -283,6 +290,7 @@ h1, h2, p { margin: 0; }
   position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px;
   display: flex; align-items: center; justify-content: space-between; z-index: 10;
 }
+.hud-left { display: flex; flex-direction: column; gap: 6px; }
 .hud-level-pill {
   background: linear-gradient(180deg, #fffef8, #fff2cf);
   border-radius: 999px; padding: 6px 16px; box-shadow: var(--shadow-soft);
@@ -291,6 +299,12 @@ h1, h2, p { margin: 0; }
 .hud-level-pill span { font-weight: bold; font-size: 0.85rem; color: var(--ui-green-dark); }
 .hud-xp-track { width: 100%; height: 7px; border-radius: 999px; background: #e9dcb8; overflow: hidden; }
 .hud-xp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ffd75e, #ff9f4d); transition: width 0.4s ease; }
+.hud-caught-pill {
+  background: linear-gradient(180deg, #fffef8, #eafbef);
+  border-radius: 999px; padding: 4px 14px; box-shadow: var(--shadow-soft);
+  align-self: flex-start;
+}
+.hud-caught-pill span { font-weight: bold; font-size: 0.72rem; color: var(--ui-green-dark); }
 
 .round-btn {
   border-radius: 50%; box-shadow: var(--shadow-soft);
@@ -361,6 +375,30 @@ h1, h2, p { margin: 0; }
 .battle-sprite.hit { animation: shake 0.35s ease; }
 @keyframes lunge { 0% { transform: translateX(0); } 40% { transform: translateX(14px) scale(1.05); } 100% { transform: translateX(0); } }
 @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+/* Archetype-specifieke aanvalanimaties — geven elk dier een beetje eigen karakter
+   i.p.v. dat iedereen exact dezelfde lunge doet. Elk animeert alleen transform,
+   zelfde discipline als hierboven. */
+.battle-sprite.atk-roll { animation: atk-roll 0.4s ease; }
+@keyframes atk-roll { 0% { transform: translateX(0) rotate(0); } 50% { transform: translateX(16px) rotate(220deg) scale(1.05); } 100% { transform: translateX(0) rotate(360deg); } }
+
+.battle-sprite.atk-hop { animation: atk-hop 0.4s ease; }
+@keyframes atk-hop { 0% { transform: translate(0,0); } 35% { transform: translate(6px,-22px); } 65% { transform: translate(14px,2px) scale(1.06); } 100% { transform: translate(0,0); } }
+
+.battle-sprite.atk-peck { animation: atk-peck 0.35s ease; }
+@keyframes atk-peck { 0% { transform: translateX(0) scaleX(1); } 45% { transform: translateX(20px) scaleX(1.12); } 100% { transform: translateX(0) scaleX(1); } }
+
+.battle-sprite.atk-spike { animation: atk-spike 0.3s ease; }
+@keyframes atk-spike { 0% { transform: translateX(0) scale(1); } 30% { transform: translateX(18px) scale(1.15); } 55% { transform: translateX(10px) scale(0.95); } 100% { transform: translateX(0) scale(1); } }
+
+.battle-sprite.atk-dive { animation: atk-dive 0.42s ease; }
+@keyframes atk-dive { 0% { transform: translate(0,0) rotate(0); } 40% { transform: translate(10px,-16px) rotate(-12deg); } 70% { transform: translate(16px,6px) rotate(8deg); } 100% { transform: translate(0,0) rotate(0); } }
+
+.battle-sprite.atk-snap { animation: atk-snap 0.28s ease; }
+@keyframes atk-snap { 0% { transform: translateX(0) scale(1); } 25% { transform: translateX(12px) scale(1.08,0.92); } 50% { transform: translateX(0) scale(1); } 75% { transform: translateX(6px) scale(1.04,0.97); } 100% { transform: translateX(0) scale(1); } }
+
+.battle-sprite.atk-splash { animation: atk-splash 0.4s ease; }
+@keyframes atk-splash { 0%,100% { transform: translateX(0) rotate(0); } 25% { transform: translateX(8px) rotate(-6deg); } 50% { transform: translateX(16px) rotate(6deg); } 75% { transform: translateX(8px) rotate(-4deg); } }
 .hp-label { font-weight: bold; font-size: 0.85rem; min-width: 70px; }
 .hp-track { flex: 1; height: 12px; border-radius: 999px; background: #e3ded0; overflow: hidden; box-shadow: inset 0 2px 3px rgba(0,0,0,0.15); }
 .hp-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #6fe07a, #2fb84d); transition: width 0.4s ease; }
@@ -412,6 +450,22 @@ h1, h2, p { margin: 0; }
   0% { transform: scale(1); box-shadow: 0 0 0 3px rgba(255,70,60,0.85), inset 0 0 18px rgba(255,70,60,0.35); }
   100% { transform: scale(0.8); box-shadow: 0 0 0 3px rgba(255,70,60,0), inset 0 0 18px rgba(255,70,60,0); }
 }
+
+/* Rariteits-badge — zelfde kleurcode als de mikcirkel hierboven, overal hergebruikt
+   waar een dier getoond wordt (kaart, verzamelscherm). "gewoon" heeft geen eigen
+   regel nodig, valt terug op --rarity-color hieronder (groen). */
+.rarity-badge {
+  --rarity-color: var(--ui-green);
+  position: absolute; color: var(--rarity-color); font-size: 14px; line-height: 1;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.3), 0 0 3px rgba(255,255,255,0.6);
+  pointer-events: none;
+}
+.rarity-badge.rarity-bijzonder { --rarity-color: #ffcc4d; }
+.rarity-badge.rarity-zeldzaam { --rarity-color: #ff6b5e; }
+.rarity-badge::before { content: "★"; }
+.critter .rarity-badge { top: 0; right: 2px; z-index: 2; }
+.collection-card .thumb { position: relative; }
+.collection-card .rarity-badge { top: -4px; right: -2px; font-size: 12px; }
 
 .catch-impact-flash {
   position: absolute; left: 50%; top: 26%; width: 150px; height: 150px; margin: -75px 0 0 -75px;
@@ -501,8 +555,24 @@ h1, h2, p { margin: 0; }
 .catch-result-title { font-size: 2rem; font-weight: bold; color: var(--ui-green-dark); text-shadow: 0 2px 0 #fff; }
 .catch-result-sub { color: #6a6455; font-size: 1rem; text-align: center; padding: 0 30px; }
 
-.confetti-piece { position: absolute; top: -10px; width: 10px; height: 14px; opacity: 0.95; animation: confettifall linear forwards; }
+.confetti-piece { position: absolute; top: -10px; width: 10px; height: 14px; opacity: 0.95; animation: confettifall linear forwards; pointer-events: none; }
 @keyframes confettifall { to { transform: translateY(120vh) rotate(720deg); opacity: 0.3; } }
+
+/* ---------- Viering: level-up + evolutie (gedeeld overlay) ---------- */
+.celebrate-stage { position: relative; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; }
+.celebrate-stage.hidden { display: none; }
+.celebrate-sprite { width: 160px; height: 160px; filter: drop-shadow(0 12px 10px rgba(10,30,15,0.3)); }
+.celebrate-sprite.hidden { display: none; }
+.celebrate-sprite.celebrate-breathe { animation: breathe 1.8s ease-in-out infinite; }
+.celebrate-sprite.celebrate-popin { animation: popin 0.5s cubic-bezier(.34,1.56,.64,1); }
+.celebrate-flash {
+  position: absolute; inset: -20px; border-radius: 50%;
+  background: radial-gradient(circle, #fff, rgba(255,255,255,0) 70%);
+  opacity: 0; pointer-events: none;
+}
+.celebrate-flash.show { animation: flashpop 0.5s ease-out; }
+.celebrate-title { font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.5); text-align: center; margin-top: 14px; }
+.celebrate-sub { color: #fff; font-size: 1rem; text-align: center; padding: 0 30px; margin-top: 6px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
 
 /* ---------- Detail modal / welkom ---------- */
 .detail-card {

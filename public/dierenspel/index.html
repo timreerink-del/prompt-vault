@@ -50,9 +50,12 @@
 
     <!-- HUD -->
     <div class="hud-top">
-      <div class="hud-level-pill">
-        <span id="hud-level">Niveau 1</span>
-        <div class="hud-xp-track"><div id="hud-xp-fill" class="hud-xp-fill"></div></div>
+      <div class="hud-left">
+        <div class="hud-level-pill">
+          <span id="hud-level">Niveau 1</span>
+          <div class="hud-xp-track"><div id="hud-xp-fill" class="hud-xp-fill"></div></div>
+        </div>
+        <div class="hud-caught-pill"><span id="hud-caught">Gevangen: 0/12</span></div>
       </div>
       <button id="btn-mute" class="round-btn small" aria-label="Geluid aan/uit" type="button">
         <svg viewBox="0 0 24 24" width="20" height="20"><path id="icon-sound" fill="currentColor" d="M4 9v6h4l5 5V4L8 9H4z"/></svg>
@@ -151,6 +154,18 @@
       <p id="detail-meta" class="panel-sub">-</p>
       <p id="detail-blurb" class="detail-blurb">-</p>
     </div>
+  </div>
+
+  <!-- ===== VIERING: LEVEL-UP / EVOLUTIE (gedeeld) ===== -->
+  <div id="celebrate-overlay" class="overlay hidden">
+    <div id="celebrate-stage" class="celebrate-stage hidden">
+      <div id="celebrate-sprite-before" class="celebrate-sprite"></div>
+      <div id="celebrate-flash" class="celebrate-flash"></div>
+      <div id="celebrate-sprite-after" class="celebrate-sprite hidden"></div>
+    </div>
+    <div id="celebrate-title" class="celebrate-title"></div>
+    <div id="celebrate-sub" class="celebrate-sub"></div>
+    <button id="celebrate-continue" class="round-btn action-btn hidden" type="button">Verder!</button>
   </div>
 
   <!-- ===== EERSTE-KEER WELKOM ===== -->

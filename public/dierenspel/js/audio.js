@@ -60,6 +60,18 @@
     klik() { tone(700, 0, 0.05, "sine", 0.1); },
   };
 
+  // Aanvalsgeluid per archetype — geeft elk dier een eigen "stem" in gevecht.
+  // De inslag/hit-reactie (SFX.raak) blijft voor iedereen gelijk.
+  const ARCHETYPE_ATTACK_SFX = {
+    rond() { tone(200, 0, 0.14, "square", 0.18, 320); },
+    hupper() { tone(500, 0, 0.08, "triangle", 0.18, 700); tone(700, 0.07, 0.1, "triangle", 0.16, 500); },
+    langnek() { tone(340, 0, 0.16, "sawtooth", 0.16, 220); },
+    stekelig() { tone(600, 0, 0.06, "square", 0.2, 900); tone(900, 0.05, 0.08, "square", 0.16, 400); },
+    vliegend() { tone(880, 0, 0.14, "sine", 0.16, 260); },
+    schelp() { tone(240, 0, 0.07, "square", 0.2, 180); },
+    zwem() { tone(420, 0, 0.16, "sine", 0.16, 180); },
+  };
+
   function setMuted(v) {
     muted = v;
   }
@@ -75,5 +87,5 @@
     }
   }
 
-  global.DierenAudio = { SFX, setMuted, isMuted, vibrate, unlock: ensureCtx };
+  global.DierenAudio = { SFX, ARCHETYPE_ATTACK_SFX, setMuted, isMuted, vibrate, unlock: ensureCtx };
 })(window);
