@@ -1,5 +1,5 @@
 /* Service worker: cachet alles bij de eerste keer laden zodat het spel daarna volledig offline werkt. */
-const CACHE_VERSION = "dierenspel-v3";
+const CACHE_VERSION = "dierenspel-v5";
 
 const PRECACHE_URLS = [
   "./index.html",
@@ -9,6 +9,7 @@ const PRECACHE_URLS = [
   "./js/audio.js",
   "./js/world-data.js",
   "./js/app.js",
+  "./fonts/Fredoka-Variable.woff2",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",

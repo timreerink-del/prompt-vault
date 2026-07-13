@@ -175,6 +175,7 @@
   const worldEl = document.getElementById("world");
   const worldDeco = document.getElementById("world-deco");
   const worldCritters = document.getElementById("world-critters");
+  const worldParallaxEl = document.getElementById("world-parallax");
   const viewportEl = document.getElementById("world-viewport");
   const playerEl = document.getElementById("player");
   const tapRing = document.getElementById("tap-ring");
@@ -297,6 +298,9 @@
     camX = clamp(player.x - vw / 2, 0, Math.max(0, WORLD_W - vw));
     camY = clamp(player.y - vh / 2, 0, Math.max(0, WORLD_H - vh));
     worldEl.style.transform = `translate3d(${-camX}px, ${-camY}px, 0)`;
+    // Parallax-laag beweegt trager dan de camera (fractie van camX/camY) — geeft
+    // een topdown-scene extra diepte zonder de y-sortering van deco/dieren te raken.
+    if (worldParallaxEl) worldParallaxEl.style.transform = `translate3d(${-camX * 0.35}px, ${-camY * 0.35}px, 0)`;
   }
 
   function placePlayerEl() {
@@ -495,7 +499,7 @@
     opts = opts || {};
     const id = "c" + (++critterUid);
     const el = document.createElement("div");
-    el.className = "critter entering";
+    el.className = "critter entering archetype-" + species.archetype;
     el.dataset.instanceId = id;
     const evolved = false;
     el.innerHTML = `<div class="critter-shadow"></div><div class="critter-sprite">${renderAnimalSVG(species, { size: 64, evolved })}</div><div class="rarity-badge rarity-${species.rarity}"></div>`;

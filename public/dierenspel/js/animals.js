@@ -199,8 +199,18 @@
     `;
   }
 
+  // Zachte contactschaduw met falloff (donker dichtbij het middelpunt, uitvloeiend
+  // naar de rand) i.p.v. een platte ellips-fill — elke aanroep krijgt een eigen
+  // gradient-id (net als grad()) om ID-botsingen tussen gelijktijdig getekende
+  // dieren te voorkomen.
   function shadowEllipse(cx, cy, rx, ry) {
-    return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#14351f" opacity="0.22"/>`;
+    const gid = uid("shfade");
+    return `<radialGradient id="${gid}" cx="50%" cy="50%" r="65%">
+        <stop offset="0%" stop-color="#14351f" stop-opacity="0.32"/>
+        <stop offset="70%" stop-color="#14351f" stop-opacity="0.16"/>
+        <stop offset="100%" stop-color="#14351f" stop-opacity="0"/>
+      </radialGradient>
+      <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#${gid})"/>`;
   }
 
   function sparkleAccessory(cx, cy) {
@@ -210,8 +220,11 @@
     </g>`;
   }
 
+  // Lichaamsvulling + een dunne korrel-overlay (gedeelde, vooraf gebakken tegel
+  // uit index.html, url(#dv-grain)) zodat de gladde gradient niet "plastic" oogt.
   function bodyGradientBlob(gid, cx, cy, rx, ry) {
-    return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#${gid})"/>`;
+    return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#${gid})"/>
+      <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#dv-grain)" opacity="0.5"/>`;
   }
 
   // Elk archetype tekent zijn eigen silhouet + accessoires; kleuren komen uit species.kleur.
@@ -242,10 +255,14 @@
         ${shadowEllipse(50, 84, 24 * s, 5.5)}
         <ellipse cx="34" cy="72" rx="${8 * s}" ry="${13 * s}" fill="${sp.kleur.donker}"/>
         <ellipse cx="66" cy="72" rx="${8 * s}" ry="${13 * s}" fill="${sp.kleur.donker}"/>
-        <ellipse cx="41" cy="36" rx="${5.5 * s}" ry="${11 * s}" fill="${sp.kleur.licht}" transform="rotate(-12 41 36)"/>
-        <ellipse cx="59" cy="36" rx="${5.5 * s}" ry="${11 * s}" fill="${sp.kleur.licht}" transform="rotate(12 59 36)"/>
-        <ellipse cx="41" cy="38" rx="3" ry="7" fill="${sp.kleur.buik}" transform="rotate(-12 41 38)"/>
-        <ellipse cx="59" cy="38" rx="3" ry="7" fill="${sp.kleur.buik}" transform="rotate(12 59 38)"/>
+        <g class="sway-ear sway-ear-l">
+          <ellipse cx="41" cy="36" rx="${5.5 * s}" ry="${11 * s}" fill="${sp.kleur.licht}" transform="rotate(-12 41 36)"/>
+          <ellipse cx="41" cy="38" rx="3" ry="7" fill="${sp.kleur.buik}" transform="rotate(-12 41 38)"/>
+        </g>
+        <g class="sway-ear sway-ear-r">
+          <ellipse cx="59" cy="36" rx="${5.5 * s}" ry="${11 * s}" fill="${sp.kleur.licht}" transform="rotate(12 59 36)"/>
+          <ellipse cx="59" cy="38" rx="3" ry="7" fill="${sp.kleur.buik}" transform="rotate(12 59 38)"/>
+        </g>
         ${bodyGradientBlob(gid, 50, 58, 24 * s, 22 * s)}
         <ellipse cx="50" cy="68" rx="${13 * s}" ry="${9 * s}" fill="${sp.kleur.buik}"/>
         <ellipse cx="40" cy="50" rx="6" ry="4" fill="#fff" opacity="0.35"/>
@@ -260,17 +277,20 @@
       return `${defs}
         ${shadowEllipse(50, 86, 20, 5)}
         <ellipse cx="50" cy="72" rx="${17 * s}" ry="${13 * s}" fill="url(#${gid})"/>
+        <ellipse cx="50" cy="72" rx="${17 * s}" ry="${13 * s}" fill="url(#dv-grain)" opacity="0.5"/>
         <ellipse cx="50" cy="78" rx="${9 * s}" ry="${5 * s}" fill="${sp.kleur.buik}"/>
-        <path d="M 46 62 Q 40 42 45 26" stroke="${sp.kleur.donker}" stroke-width="${9 * s}" fill="none" stroke-linecap="round"/>
-        <path d="M 46 62 Q 40 42 45 26" stroke="url(#${gid})" stroke-width="${7 * s}" fill="none" stroke-linecap="round"/>
-        <ellipse cx="45" cy="22" rx="${9 * s}" ry="${8 * s}" fill="url(#${gid})"/>
-        ${evolved ? `<path d="M 40 16 L 38 8" stroke="${sp.kleur.donker}" stroke-width="2" stroke-linecap="round"/>
-                     <path d="M 50 16 L 52 8" stroke="${sp.kleur.donker}" stroke-width="2" stroke-linecap="round"/>` : `
-                     <path d="M 41 15 L 40 10" stroke="${sp.kleur.donker}" stroke-width="1.6" stroke-linecap="round"/>
-                     <path d="M 49 15 L 50 10" stroke="${sp.kleur.donker}" stroke-width="1.6" stroke-linecap="round"/>`}
-        ${face(45, 22, 4.4, { eyeR: 2.6 })}
+        <g class="sway-neck">
+          <path d="M 46 62 Q 40 42 45 26" stroke="${sp.kleur.donker}" stroke-width="${9 * s}" fill="none" stroke-linecap="round"/>
+          <path d="M 46 62 Q 40 42 45 26" stroke="url(#${gid})" stroke-width="${7 * s}" fill="none" stroke-linecap="round"/>
+          <ellipse cx="45" cy="22" rx="${9 * s}" ry="${8 * s}" fill="url(#${gid})"/>
+          ${evolved ? `<path d="M 40 16 L 38 8" stroke="${sp.kleur.donker}" stroke-width="2" stroke-linecap="round"/>
+                       <path d="M 50 16 L 52 8" stroke="${sp.kleur.donker}" stroke-width="2" stroke-linecap="round"/>` : `
+                       <path d="M 41 15 L 40 10" stroke="${sp.kleur.donker}" stroke-width="1.6" stroke-linecap="round"/>
+                       <path d="M 49 15 L 50 10" stroke="${sp.kleur.donker}" stroke-width="1.6" stroke-linecap="round"/>`}
+          ${face(45, 22, 4.4, { eyeR: 2.6 })}
+          ${evolved ? sparkleAccessory(64, 24) : ""}
+        </g>
         ${sp.kleur.accent ? `<circle cx="55" cy="70" r="3" fill="${sp.kleur.accent}" opacity="0.6"/><circle cx="44" cy="76" r="2.2" fill="${sp.kleur.accent}" opacity="0.6"/>` : ""}
-        ${evolved ? sparkleAccessory(64, 24) : ""}
       `;
     },
     stekelig(sp, evolved) {
@@ -305,8 +325,12 @@
       const wdefs = grad(wgid, sp.kleur.accent, sp.kleur.licht, 0.5, 0.3, 0.8);
       return `${defs}${wdefs}
         ${shadowEllipse(50, 84, 20 * s, 5)}
-        <ellipse cx="27" cy="52" rx="${15 * s}" ry="${10 * s}" fill="url(#${wgid})" opacity="0.92" transform="rotate(-18 27 52)"/>
-        <ellipse cx="73" cy="52" rx="${15 * s}" ry="${10 * s}" fill="url(#${wgid})" opacity="0.92" transform="rotate(18 73 52)"/>
+        <g class="sway-wing sway-wing-l">
+          <ellipse cx="27" cy="52" rx="${15 * s}" ry="${10 * s}" fill="url(#${wgid})" opacity="0.92" transform="rotate(-18 27 52)"/>
+        </g>
+        <g class="sway-wing sway-wing-r">
+          <ellipse cx="73" cy="52" rx="${15 * s}" ry="${10 * s}" fill="url(#${wgid})" opacity="0.92" transform="rotate(18 73 52)"/>
+        </g>
         ${bodyGradientBlob(gid, 50, 55, 19 * s, 20 * s)}
         <ellipse cx="50" cy="64" rx="${11 * s}" ry="${8 * s}" fill="${sp.kleur.buik}"/>
         <ellipse cx="43" cy="47" rx="5" ry="3.5" fill="#fff" opacity="0.4"/>
@@ -322,6 +346,7 @@
         ${shadowEllipse(50, 83, 24 * s, 5.5)}
         <ellipse cx="50" cy="70" rx="${18 * s}" ry="${13 * s}" fill="${sp.kleur.licht}"/>
         <path d="M 50 42 C 32 46 28 66 34 78 C 40 70 44 68 50 68 C 56 68 60 70 66 78 C 72 66 68 46 50 42 Z" fill="url(#${gid})"/>
+        <path d="M 50 42 C 32 46 28 66 34 78 C 40 70 44 68 50 68 C 56 68 60 70 66 78 C 72 66 68 46 50 42 Z" fill="url(#dv-grain)" opacity="0.5"/>
         <path d="M 50 46 L 50 68 M 40 50 L 44 68 M 60 50 L 56 68" stroke="${sp.kleur.donker}" stroke-width="1.4" opacity="0.5" fill="none"/>
         <ellipse cx="50" cy="76" rx="${10 * s}" ry="${6 * s}" fill="${sp.kleur.buik}"/>
         ${face(50, 76, 6.5)}
@@ -334,10 +359,14 @@
       const defs = grad(gid, sp.kleur.licht, sp.kleur.donker, 0.4, 0.3, 0.7);
       return `${defs}
         ${shadowEllipse(50, 80, 24 * s, 5)}
-        <path d="M 74 50 L 88 38 L 88 62 Z" fill="${sp.kleur.donker}"/>
+        <g class="sway-tail">
+          <path d="M 74 50 L 88 38 L 88 62 Z" fill="${sp.kleur.donker}"/>
+        </g>
         <ellipse cx="50" cy="50" rx="${9 * s}" ry="${18 * s}" fill="${sp.kleur.donker}" transform="rotate(90 50 50)"/>
         ${bodyGradientBlob(gid, 46, 50, 26 * s, 17 * s)}
-        <path d="M 46 40 Q 30 34 22 40 Q 30 46 46 50 Z" fill="${sp.kleur.accent}" opacity="0.85"/>
+        <g class="sway-fin">
+          <path d="M 46 40 Q 30 34 22 40 Q 30 46 46 50 Z" fill="${sp.kleur.accent}" opacity="0.85"/>
+        </g>
         <ellipse cx="50" cy="55" rx="${13 * s}" ry="${8 * s}" fill="${sp.kleur.buik}"/>
         <ellipse cx="34" cy="42" rx="5" ry="3.5" fill="#fff" opacity="0.4"/>
         ${face(32, 48, 4.6, { eyeR: 2.6 })}
@@ -373,6 +402,7 @@
       <ellipse cx="33" cy="66" rx="9" ry="12" fill="${accent.donker}"/>
       <ellipse cx="33" cy="66" rx="5.5" ry="8" fill="${accent.licht}" opacity="0.7"/>
       <ellipse cx="50" cy="70" rx="20" ry="18" fill="url(#${gidBody})"/>
+      <ellipse cx="50" cy="70" rx="20" ry="18" fill="url(#dv-grain)" opacity="0.5"/>
       <ellipse cx="50" cy="80" rx="11" ry="7" fill="#fff8ec" opacity="0.9"/>
       <ellipse cx="40" cy="58" rx="6" ry="4" fill="#fff" opacity="0.3"/>
       <circle cx="50" cy="37" r="17" fill="url(#${gidHead})"/>
