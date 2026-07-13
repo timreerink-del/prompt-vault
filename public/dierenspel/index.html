@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Diervangspel</title>
+<meta name="description" content="Vang schattige dieren en verzamel ze onderweg in de auto!" />
+<meta name="theme-color" content="#3aa76d" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Diervangspel" />
+<link rel="manifest" href="/dierenspel/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="/dierenspel/icons/apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/dierenspel/icons/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/dierenspel/icons/favicon-16.png" />
+<link rel="stylesheet" href="/dierenspel/css/style.css" />
+</head>
+<body>
+<!-- Gedeelde grain/korrel-textuur (backlog design-audit 1.1): één statische,
+     vooraf gebakken tegel (geen live SVG-filter), hergebruikt door alle dieren-
+     silhouetten via url(#dv-grain) zodat gradientvullingen niet meer brandschoon
+     glad aanvoelen — zonder runtime feTurbulence-kosten op een low-end telefoon. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="dv-grain" patternUnits="userSpaceOnUse" width="16" height="16">
+      <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAADoUlEQVR42gXBS0syXQAA4HOZMzpjKo7ap3S1m2hpZWRgUdEmgn5Dq/b9olbtgja1lYgWGZIFSqZO5SWaMrQsnVdn5pyZ73ng8fHxfy6XC/R6PZ3neV4UxX93d3dCNBo13G43ymQyg6mpKVwul1kikXD4fD7z7OzMisViZigU4pDf72e5XI7e3NzwCKFeOp1mEEL08vKCLi4u8MzMDGdZFrHZbLZyuWzmcjlmGAYslUoAAKDhra0tu6IoeGRkRGu1WkSSJPr19YV0XWeEEA5CyCqVira7u0vr9bqpKAqKxWLY7/ezTCbDodHRUWN/f19zOBxUFEX28vLC22w2TZIkYllWt9FowGQyiQAAdsYYt76+Tmu1mjE5OQkIIQy9v7+D09NTMDk5iWVZNoeHh8Hm5qY9Go3+0zQN+Xw+8Pb2Zvb7feZ0Oq3b21vTMAw2GAw4j8ej48PDQ0EQBMIYo7FYjAQCAaooCvV6vZAxNkQpxYuLiyybzZqJRIJrt9v8xMSEHQDAnp+fEZYkiet2u8b4+DgulUp8OBwGsiwjn8+HW62WqaoqVywWdafTSTweDx4fH7ey2aw2GAzsdrsdIkop8Pv9/GAwsJrNpppOp023240YY4aiKMwwDLC8vIzX1tY4j8djUkq1nZ0d+vHxoXm9XoBmZ2etWq2GA4GAmUwmocfjgY1GQ7u6uiKpVAr0ej0QCoXY09OTfn5+jv7+/oYuLy+dKysrpFgsInxwcOCq1+tgfn4efn5+8sViEQEAKEKIVxSFLSwsoLe3NxCPxzlBEEwAAJ6enu4RQviJiYkeTqVSYr/fNwuFAtve3jYkSbJFo1FOkiRdlmXocDj0eDxOrq+vrVarRTDGJgAA1et1ynGcHW9tbXEbGxuw0+mIjUbD+vn5Ad1uV399fbWSySQqFAp2WZZ1QogxMzMDf39/+e/vbxwIBNjY2BiAJycnvmazCcPhMK1UKrosy3hvb48KguDI5XKmKIrG3NycXVXVniiKqF6vk/f3d00URdzpdAQcDAbFfr/PqtUqjkQiJBaLkVqtZvj9fvb8/GwLBoP04eEB5/N5m9frhblcznC5XNjpdJJUKmXio6Mjod1um3t7e/z9/b1qmqYdAGCoqko6nQ4oFovW+vo6XFpa4jRNg4IgAJ7nSafTGQSDQRGHQiHO5XKJqqp2IYQ2Sqn2+PiIpqenjVKphCKRCGKMcdVqVc/n8/rv7y9stVr66uoqNzQ0hP8HVkbiBvkyNZ0AAAAASUVORK5CYII=" x="0" y="0" width="16" height="16" />
+    </pattern>
+  </defs>
+</svg>
+<div id="app">
+
+  <!-- ===== KAART-SCHERM ===== -->
+  <section id="screen-map" class="screen active">
+    <div class="sky">
+      <div class="cloud cloud-a"></div>
+      <div class="cloud cloud-b"></div>
+      <div class="cloud cloud-c"></div>
+      <div class="sun-glow"></div>
+    </div>
+
+    <div id="world-viewport">
+      <div id="world">
+        <div id="world-deco"></div>
+        <div id="world-critters"></div>
+        <div id="tap-ring"></div>
+        <div id="player" class="player">
+          <div class="player-shadow"></div>
+          <div class="player-body">
+            <div id="player-svg" class="player-svg"></div>
+          </div>
+        </div>
+        <div id="buddy" class="buddy hidden">
+          <div class="buddy-shadow"></div>
+          <div id="buddy-sprite" class="buddy-sprite"></div>
+        </div>
+      </div>
+      <div id="world-parallax"></div>
+      <div id="edge-cue-top" class="edge-cue edge-top"></div>
+      <div id="edge-cue-bottom" class="edge-cue edge-bottom"></div>
+      <div id="edge-cue-left" class="edge-cue edge-left"></div>
+      <div id="edge-cue-right" class="edge-cue edge-right"></div>
+    </div>
+
+    <!-- HUD -->
+    <div class="hud-top">
+      <div class="hud-left">
+        <div class="hud-level-pill">
+          <span id="hud-level">Niveau 1</span>
+          <div class="hud-xp-track"><div id="hud-xp-fill" class="hud-xp-fill"></div></div>
+        </div>
+        <div class="hud-caught-pill"><span id="hud-caught">Gevangen: 0/12</span></div>
+      </div>
+      <div class="hud-actions">
+        <button id="btn-music" class="round-btn small" aria-label="Muziek aan/uit" type="button">
+          <span class="music-icon">🎵</span>
+        </button>
+        <button id="btn-mute" class="round-btn small" aria-label="Geluid aan/uit" type="button">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path id="icon-sound" fill="currentColor" d="M4 9v6h4l5 5V4L8 9H4z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="nearby-hint" class="nearby-hint" aria-live="polite"></div>
+    <div id="spawn-banner" class="spawn-banner" aria-live="polite"></div>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-screen="screen-map" type="button">
+        <span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" width="21" height="21" fill="none"><path d="M4 6 L9 4 L15 6 L20 4 V18 L15 20 L9 18 L4 20 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 4 V18 M15 6 V20" stroke="currentColor" stroke-width="1.1" opacity="0.5"/><circle cx="12" cy="11" r="1.7" fill="currentColor"/></svg></span><span>Kaart</span>
+      </button>
+      <button class="nav-btn" data-screen="screen-collection" type="button">
+        <span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" width="21" height="21" fill="none"><path d="M4 5.5 C4 4.9 4.6 4.5 6 4.5 H11.4 V19 H6 C4.6 19 4 18.6 4 18 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M20 5.5 C20 4.9 19.4 4.5 18 4.5 H12.6 V19 H18 C19.4 19 20 18.6 20 18 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span>Mijn Dieren</span><span class="nav-dot"></span>
+      </button>
+      <button class="nav-btn" data-screen="screen-battle" type="button">
+        <span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" width="21" height="21" fill="none"><path d="M5 5 L18 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M14.3 14.3 L17.6 11 M18 18 L14.3 14.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 6 L6 19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9.7 14.3 L6.4 11 M6 19 L9.7 14.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Gevecht</span>
+      </button>
+    </nav>
+  </section>
+
+  <!-- ===== VERZAMELSCHERM ===== -->
+  <section id="screen-collection" class="screen">
+    <header class="panel-header">
+      <h1>Mijn Dieren</h1>
+      <p id="collection-progress" class="panel-sub">0 van 12 gevonden</p>
+    </header>
+    <div id="medal-strip" class="medal-strip"></div>
+    <div id="collection-grid" class="collection-grid"></div>
+    <nav class="bottom-nav">
+      <button class="nav-btn" data-screen="screen-map" type="button"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" width="21" height="21" fill="none"><path d="M4 6 L9 4 L15 6 L20 4 V18 L15 20 L9 18 L4 20 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 4 V18 M15 6 V20" stroke="currentColor" stroke-width="1.1" opacity="0.5"/><circle cx="12" cy="11" r="1.7" fill="currentColor"/></svg></span><span>Kaart</span></button>
+      <button class="nav-btn active" data-screen="screen-collection" type="button"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" width="21" height="21" fill="none"><path d="M4 5.5 C4 4.9 4.6 4.5 6 4.5 H11.4 V19 H6 C4.6 19 4 18.6 4 18 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M20 5.5 C20 4.9 19.4 4.5 18 4.5 H12.6 V19 H18 C19.4 19 20 18.6 20 18 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span>Mijn Dieren</span><span class="nav-dot"></span></button>
+      <button class="nav-btn" data-screen="screen-battle" type="button"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" width="21" height="21" fill="none"><path d="M5 5 L18 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M14.3 14.3 L17.6 11 M18 18 L14.3 14.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 6 L6 19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9.7 14.3 L6.4 11 M6 19 L9.7 14.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Gevecht</span></button>
+    </nav>
+  </section>
+
+  <!-- ===== GEVECHT-SCHERM ===== -->
+  <section id="screen-battle" class="screen">
+    <header class="panel-header">
+      <h1>Gevecht</h1>
+      <p class="panel-sub">Kies een dier en daag een wild diertje uit!</p>
+    </header>
+    <div id="battle-picker" class="battle-picker"></div>
+    <div id="battle-arena" class="battle-arena ground-scene-bg hidden">
+      <div class="battle-side battle-enemy">
+        <div class="hp-label"><span id="enemy-name">?</span></div>
+        <div class="hp-track"><div id="enemy-hp" class="hp-fill"></div></div>
+        <div id="enemy-sprite" class="battle-sprite"></div>
+      </div>
+      <div class="battle-side battle-player">
+        <div id="player-sprite" class="battle-sprite"></div>
+        <div class="hp-track"><div id="player-hp" class="hp-fill"></div></div>
+        <div class="hp-label"><span id="player-name">?</span></div>
+      </div>
+      <div id="battle-log" class="battle-log">Kies "Aanval" om te beginnen!</div>
+      <div class="battle-actions">
+        <button id="btn-attack" class="round-btn action-btn" type="button">Aanval!</button>
+        <button id="btn-battle-exit" class="round-btn action-btn ghost" type="button">Terug</button>
+      </div>
+    </div>
+    <nav class="bottom-nav">
+      <button class="nav-btn" data-screen="screen-map" type="button"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" width="21" height="21" fill="none"><path d="M4 6 L9 4 L15 6 L20 4 V18 L15 20 L9 18 L4 20 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 4 V18 M15 6 V20" stroke="currentColor" stroke-width="1.1" opacity="0.5"/><circle cx="12" cy="11" r="1.7" fill="currentColor"/></svg></span><span>Kaart</span></button>
+      <button class="nav-btn" data-screen="screen-collection" type="button"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" width="21" height="21" fill="none"><path d="M4 5.5 C4 4.9 4.6 4.5 6 4.5 H11.4 V19 H6 C4.6 19 4 18.6 4 18 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M20 5.5 C20 4.9 19.4 4.5 18 4.5 H12.6 V19 H18 C19.4 19 20 18.6 20 18 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span>Mijn Dieren</span><span class="nav-dot"></span></button>
+      <button class="nav-btn active" data-screen="screen-battle" type="button"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" width="21" height="21" fill="none"><path d="M5 5 L18 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M14.3 14.3 L17.6 11 M18 18 L14.3 14.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 6 L6 19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9.7 14.3 L6.4 11 M6 19 L9.7 14.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Gevecht</span></button>
+    </nav>
+  </section>
+
+  <!-- ===== VANGST-OVERLAY ===== -->
+  <div id="catch-overlay" class="overlay hidden">
+    <div class="catch-sky ground-scene-bg"></div>
+    <p id="catch-hint" class="catch-hint">👉 Pak de bal en gooi hem in de cirkel!</p>
+    <div id="catch-field" class="catch-field">
+      <div id="catch-target-ring" class="catch-target-ring"></div>
+      <div id="catch-impact-flash" class="catch-impact-flash"></div>
+      <div id="catch-critter" class="catch-critter"></div>
+      <div id="catch-ball-ghost" class="catch-ball-ghost" aria-hidden="true"></div>
+      <div id="catch-ball" class="catch-ball-hit" role="button" aria-label="Sleep de bal naar het diertje">
+        <div id="catch-ball-visual" class="catch-ball-obj">
+          <div class="ball-shine"></div>
+        </div>
+      </div>
+    </div>
+    <div id="catch-result" class="catch-result hidden">
+      <div id="catch-result-emoji" class="catch-result-emoji">🎉</div>
+      <div id="catch-result-title" class="catch-result-title">Gevangen!</div>
+      <div id="catch-result-sub" class="catch-result-sub"></div>
+      <button id="catch-continue" class="round-btn action-btn" type="button">Verder!</button>
+    </div>
+  </div>
+
+  <!-- ===== DIER-DETAIL MODAL ===== -->
+  <div id="detail-modal" class="overlay hidden">
+    <div class="detail-card">
+      <button id="detail-close" class="round-btn small detail-close" type="button" aria-label="Sluiten">✕</button>
+      <div class="detail-nav">
+        <button id="detail-prev" class="round-btn small" type="button" aria-label="Vorige">‹</button>
+        <div id="detail-sprite" class="detail-sprite"></div>
+        <button id="detail-next" class="round-btn small" type="button" aria-label="Volgende">›</button>
+      </div>
+      <h2 id="detail-name">-</h2>
+      <p id="detail-meta" class="panel-sub">-</p>
+      <p id="detail-blurb" class="detail-blurb">-</p>
+    </div>
+  </div>
+
+  <!-- ===== VIERING: LEVEL-UP / EVOLUTIE (gedeeld) ===== -->
+  <div id="celebrate-overlay" class="overlay hidden">
+    <div id="celebrate-stage" class="celebrate-stage hidden">
+      <div id="celebrate-sprite-before" class="celebrate-sprite"></div>
+      <div id="celebrate-flash" class="celebrate-flash"></div>
+      <div id="celebrate-sprite-after" class="celebrate-sprite hidden"></div>
+    </div>
+    <div id="celebrate-title" class="celebrate-title"></div>
+    <div id="celebrate-sub" class="celebrate-sub"></div>
+    <button id="celebrate-continue" class="round-btn action-btn hidden" type="button">Verder!</button>
+  </div>
+
+  <!-- ===== EERSTE-KEER WELKOM ===== -->
+  <div id="welcome-overlay" class="overlay">
+    <div class="detail-card welcome-card">
+      <h1>Welkom bij het Diervangspel!</h1>
+      <p>Tik op het pad om te lopen. Zoek dieren en tik erop om ze te vangen. Veel plezier! 🐾</p>
+      <p class="panel-sub">Kies je kleur:</p>
+      <div id="accent-picker" class="accent-picker"></div>
+      <button id="welcome-start" class="round-btn action-btn" type="button">Start!</button>
+    </div>
+  </div>
+
+  <!-- ===== SPLASH ===== -->
+  <div id="splash-overlay" class="overlay">
+    <div class="splash-logo">🐾</div>
+    <div class="splash-title">Diervangspel</div>
+  </div>
+
+</div>
+<script src="/dierenspel/js/animals.js"></script>
+<script src="/dierenspel/js/audio.js"></script>
+<script src="/dierenspel/js/world-data.js"></script>
+<script src="/dierenspel/js/app.js"></script>
+</body>
+</html>
