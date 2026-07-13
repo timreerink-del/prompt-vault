@@ -2,8 +2,8 @@
 (function () {
   "use strict";
 
-  const { SPECIES, RARITY_LABEL, renderAnimalSVG } = window.DierenData;
-  const { WORLD_W, WORLD_H, START, pathPoints, waterPools, deco, butterflySpots, nearWater } = window.DierenWereld;
+  const { SPECIES, RARITY_LABEL, renderAnimalSVG, renderPlayerSVG } = window.DierenData;
+  const { WORLD_W, WORLD_H, START, pathPoints, sidePaths, waterPools, deco, butterflySpots, discoverySpots, nearWater } = window.DierenWereld;
   const Audio = window.DierenAudio;
 
   const STORAGE_KEY = "dierenspel_state_v1";
@@ -15,10 +15,24 @@
     zeldzaam: { count: 64, colors: ["#ff6b5e", "#ffcc4d", "#ff9a4d", "#ffe07a", "#fff6c9", "#ff6b8a"] },
   };
   const MAX_ACTIVE_CRITTERS = 4;
+  const PLAYER_ACCENTS = [
+    { licht: "#6fd6f2", donker: "#2f9fce" },
+    { licht: "#ff9f6b", donker: "#e2703a" },
+    { licht: "#b6ef7a", donker: "#5fae2e" },
+    { licht: "#ffb3e6", donker: "#d259b0" },
+  ];
+  // Dieptecue (backlog 1.1): objecten hoger op de kaart (kleinere world-Y) liggen
+  // verder weg en worden kleiner/wazig getekend — puur visueel, geen invloed op x/y.
+  const DEPTH_FAR_Y = 100;
+  const DEPTH_NEAR_Y = WORLD_H - 60;
+  function depthFor(y) {
+    const t = Math.max(0, Math.min(1, (y - DEPTH_FAR_Y) / (DEPTH_NEAR_Y - DEPTH_FAR_Y)));
+    return { scale: 0.72 + 0.28 * t, blur: (1 - t) * 1.6 };
+  }
 
   // ---------------------------------------------------------------- state
   function defaultState() {
-    return { caught: {}, xp: 0, level: 1, muted: false, seenWelcome: false };
+    return { caught: {}, xp: 0, level: 1, muted: false, seenWelcome: false, playerAccent: 0, unseenNewCatch: false };
   }
   let state = loadState();
 
@@ -83,6 +97,11 @@
     const pct = Math.min(100, (state.xp / xpForLevel(state.level)) * 100);
     hudXpFill.style.width = pct + "%";
     hudCaught.textContent = `Gevangen: ${Object.keys(state.caught).length}/${SPECIES.length}`;
+    updateNewBadge();
+  }
+
+  function updateNewBadge() {
+    document.querySelectorAll(".nav-dot").forEach((d) => d.classList.toggle("show", !!state.unseenNewCatch));
   }
 
   function showBanner(text, ms) {
@@ -96,12 +115,27 @@
   function showScreen(id) {
     document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
     document.querySelectorAll(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.screen === id));
-    if (id === "screen-collection") renderCollection();
+    if (id === "screen-collection") {
+      renderCollection();
+      if (state.unseenNewCatch) { state.unseenNewCatch = false; saveState(); }
+      updateNewBadge();
+    }
     if (id === "screen-battle") renderBattlePicker();
   }
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => { Audio.SFX.klik(); showScreen(btn.dataset.screen); });
   });
+
+  // ---------------------------------------------------------------- dag/nacht
+  function isEveningNow() {
+    const h = new Date().getHours();
+    return h >= 19 || h < 6;
+  }
+  function applyDayNight() {
+    document.documentElement.classList.toggle("evening", isEveningNow());
+  }
+  applyDayNight();
+  setInterval(applyDayNight, 5 * 60000);
 
   // ---------------------------------------------------------------- mute
   const btnMute = document.getElementById("btn-mute");
@@ -138,6 +172,12 @@
       d += ` Q ${p0.x} ${p0.y} ${mx} ${my}`;
     }
     d += ` T ${pathPoints[pathPoints.length - 1].x} ${pathPoints[pathPoints.length - 1].y}`;
+    let sideD = "";
+    (sidePaths || []).forEach((pts) => {
+      let sd = `M ${pts[0].x} ${pts[0].y}`;
+      for (let i = 1; i < pts.length; i++) sd += ` L ${pts[i].x} ${pts[i].y}`;
+      sideD += " " + sd;
+    });
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("width", WORLD_W);
     svg.setAttribute("height", WORLD_H);
@@ -148,8 +188,29 @@
       <path d="${d}" fill="none" stroke="#d9b374" stroke-width="46" stroke-linecap="round" opacity="0.9"/>
       <path d="${d}" fill="none" stroke="#f3d9a4" stroke-width="36" stroke-linecap="round"/>
       <path d="${d}" fill="none" stroke="#eccb8f" stroke-width="4" stroke-dasharray="2 16" stroke-linecap="round" opacity="0.7"/>
+      ${sideD ? `<path d="${sideD}" fill="none" stroke="#e0c48f" stroke-width="16" stroke-linecap="round" class="side-path"/>` : ""}
     `;
     worldDeco.appendChild(svg);
+  }
+
+  const discoverySpotEls = [];
+  const DISCOVERY_COOLDOWN = 90000;
+  function renderDiscoverySpots() {
+    (discoverySpots || []).forEach((spot, i) => {
+      const el = document.createElement("div");
+      el.className = "discovery-spot";
+      el.style.left = spot.x + "px";
+      el.style.top = spot.y + "px";
+      el.style.zIndex = String(Math.round(spot.y) + 1);
+      el.dataset.spotIndex = String(i);
+      worldDeco.appendChild(el);
+      discoverySpotEls.push({ el, lastUsed: -Infinity });
+    });
+  }
+  function updateDiscoverySpots(now) {
+    discoverySpotEls.forEach((d) => {
+      d.el.classList.toggle("used", now - d.lastUsed < DISCOVERY_COOLDOWN);
+    });
   }
 
   function renderDeco() {
@@ -170,6 +231,9 @@
       el.style.left = item.x + "px";
       el.style.top = item.y + "px";
       el.style.zIndex = String(Math.round(item.y));
+      const depth = depthFor(item.y);
+      el.style.setProperty("--depth-scale", depth.scale.toFixed(3));
+      el.style.setProperty("--depth-blur", depth.blur.toFixed(2) + "px");
       if (item.type === "tree") {
         el.style.width = item.size + "px";
         el.style.height = item.size * 1.5 + "px";
@@ -194,6 +258,7 @@
       el.style.animationDelay = (-i * 1.3) + "s, " + (-i * 0.2) + "s";
       worldDeco.appendChild(el);
     });
+    renderDiscoverySpots();
   }
   renderDeco();
 
@@ -220,8 +285,37 @@
     playerEl.style.left = player.x + "px";
     playerEl.style.top = player.y + "px";
     playerEl.style.zIndex = String(Math.round(player.y));
-    playerEl.style.transform = player.facing < 0 ? "scaleX(-1)" : "scaleX(1)";
+    const depth = depthFor(player.y);
+    const flip = player.facing < 0 ? -1 : 1;
+    playerEl.style.transform = `scaleX(${flip}) scale(${depth.scale.toFixed(3)})`;
   }
+
+  const playerSvgEl = document.getElementById("player-svg");
+  function renderPlayerAppearance() {
+    playerSvgEl.innerHTML = renderPlayerSVG(PLAYER_ACCENTS[state.playerAccent] || PLAYER_ACCENTS[0], 64);
+  }
+  renderPlayerAppearance();
+
+  const accentPicker = document.getElementById("accent-picker");
+  function renderAccentPicker() {
+    accentPicker.innerHTML = "";
+    PLAYER_ACCENTS.forEach((acc, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "accent-swatch" + (i === state.playerAccent ? " selected" : "");
+      btn.style.background = `radial-gradient(circle at 35% 30%, ${acc.licht}, ${acc.donker} 75%)`;
+      btn.setAttribute("aria-label", "Kies kleur " + (i + 1));
+      btn.addEventListener("click", () => {
+        state.playerAccent = i;
+        saveState();
+        Audio.SFX.klik();
+        renderAccentPicker();
+        renderPlayerAppearance();
+      });
+      accentPicker.appendChild(btn);
+    });
+  }
+  renderAccentPicker();
 
   function screenToWorld(clientX, clientY) {
     const r = viewportEl.getBoundingClientRect();
@@ -230,6 +324,21 @@
 
   viewportEl.addEventListener("click", (ev) => {
     Audio.unlock();
+    const spotHit = ev.target.closest(".discovery-spot");
+    if (spotHit) {
+      const rec = discoverySpotEls[Number(spotHit.dataset.spotIndex)];
+      const now = performance.now();
+      if (rec && now - rec.lastUsed >= DISCOVERY_COOLDOWN) {
+        rec.lastUsed = now;
+        spotHit.classList.add("used");
+        makeSparkles(spotHit);
+        Audio.SFX.vondst();
+        Audio.vibrate([20, 20, 20]);
+        addXP(5);
+        showBanner("Leuke vondst! +5 XP ✨", 1800);
+      }
+      return;
+    }
     const critterHit = ev.target.closest(".critter");
     if (critterHit) {
       const inst = activeCritters[critterHit.dataset.instanceId];
@@ -250,11 +359,19 @@
   const activeCritters = {};
   let critterUid = 0;
 
+  function nightWeightFor(s) {
+    const evening = isEveningNow();
+    const base = RARITY_WEIGHT[s.rarity];
+    if (evening && s.nachtdier) return base * 3;
+    if (evening && !s.nachtdier) return base * 0.7;
+    return base;
+  }
+
   function weightedRandomSpecies() {
-    const total = SPECIES.reduce((sum, s) => sum + RARITY_WEIGHT[s.rarity], 0);
+    const total = SPECIES.reduce((sum, s) => sum + nightWeightFor(s), 0);
     let r = Math.random() * total;
     for (const s of SPECIES) {
-      r -= RARITY_WEIGHT[s.rarity];
+      r -= nightWeightFor(s);
       if (r <= 0) return s;
     }
     return SPECIES[0];
@@ -271,6 +388,19 @@
       sp.style.animationDelay = (Math.random() * 0.15) + "s";
       el.appendChild(sp);
       sp.addEventListener("animationend", () => sp.remove());
+    }
+  }
+
+  function spawnDustPoof(el) {
+    for (let i = 0; i < 6; i++) {
+      const p = document.createElement("div");
+      p.className = "dust-particle";
+      const angle = (Math.PI * 2 * i) / 6;
+      const dist = 24 + Math.random() * 14;
+      p.style.setProperty("--sp-end", `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist - 6}px)`);
+      p.style.left = "50%"; p.style.top = "50%";
+      el.appendChild(p);
+      p.addEventListener("animationend", () => p.remove());
     }
   }
 
@@ -349,18 +479,41 @@
     y = clamp(y, -80, WORLD_H + 80);
     const targetX = clamp(camX + vw * (0.3 + Math.random() * 0.4), 40, WORLD_W - 40);
     const targetY = clamp(camY + vh * (0.3 + Math.random() * 0.4), 40, WORLD_H - 40);
-    return { x, y, inwardTarget: { x: targetX, y: targetY } };
+    return { x, y, inwardTarget: { x: targetX, y: targetY }, edge };
   }
 
-  function spawnLoop() {
-    if (Object.keys(activeCritters).length < MAX_ACTIVE_CRITTERS) {
-      const species = weightedRandomSpecies();
-      const spot = pickEdgeSpawn();
-      spawnCritterAt(species, spot.x, spot.y, { announce: true, inwardTarget: spot.inwardTarget });
-    }
-    setTimeout(spawnLoop, 10000 + Math.random() * 10000);
+  const nearbyHintEl = document.getElementById("nearby-hint");
+  function showNearbyHint(species) {
+    nearbyHintEl.innerHTML = `<div class="thumb">${renderAnimalSVG(species, { size: 30 })}<div class="rarity-badge rarity-${species.rarity}"></div></div><span class="label">Dichtbij...</span>`;
+    nearbyHintEl.classList.add("show");
   }
-  setTimeout(spawnLoop, 3000);
+  function hideNearbyHint() { nearbyHintEl.classList.remove("show"); }
+
+  function showEdgeCue(edge) {
+    const el = document.getElementById("edge-cue-" + edge);
+    if (!el) return;
+    el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 900);
+  }
+
+  function scheduleNextSpawn() {
+    const delay = 10000 + Math.random() * 10000;
+    if (Object.keys(activeCritters).length >= MAX_ACTIVE_CRITTERS) {
+      setTimeout(scheduleNextSpawn, delay);
+      return;
+    }
+    const species = weightedRandomSpecies();
+    const spot = pickEdgeSpawn();
+    const hintDelay = Math.max(500, delay - 2200);
+    setTimeout(() => showNearbyHint(species), hintDelay);
+    setTimeout(() => {
+      hideNearbyHint();
+      showEdgeCue(spot.edge);
+      spawnCritterAt(species, spot.x, spot.y, { announce: true, inwardTarget: spot.inwardTarget });
+      scheduleNextSpawn();
+    }, delay);
+  }
+  setTimeout(scheduleNextSpawn, 3000);
 
   function removeCritter(id, immediate) {
     const inst = activeCritters[id];
@@ -424,6 +577,7 @@
       c.el.style.left = renderX + "px";
       c.el.style.top = renderY + "px";
       c.el.style.zIndex = String(Math.round(renderY));
+      c.el.style.setProperty("--depth-scale", depthFor(renderY).scale.toFixed(3));
     }
   }
 
@@ -451,6 +605,7 @@
     placePlayerEl();
     updateCamera();
     updateCritters(dt, ts);
+    updateDiscoverySpots(ts);
 
     requestAnimationFrame(gameLoop);
   }
@@ -469,6 +624,7 @@
   const catchBallVisual = document.getElementById("catch-ball-visual");
   const catchHint = document.getElementById("catch-hint");
   const catchResult = document.getElementById("catch-result");
+  const catchResultEmoji = document.getElementById("catch-result-emoji");
   const catchResultTitle = document.getElementById("catch-result-title");
   const catchResultSub = document.getElementById("catch-result-sub");
   const catchContinueBtn = document.getElementById("catch-continue");
@@ -509,15 +665,19 @@
   }
 
   function openCatch(inst) {
-    catchState = { inst, tapsDone: 0, tapsNeeded: inst.species.vangKeer, busy: false, ringStartTs: performance.now() };
+    catchState = { inst, tapsDone: 0, tapsNeeded: inst.species.vangKeer, fails: 0, busy: false, ringStartTs: performance.now() };
     catchCritterEl.className = "catch-critter";
     catchCritterEl.innerHTML = renderAnimalSVG(inst.species, { size: 128 });
     catchTargetRing.className = "catch-target-ring rarity-" + inst.species.rarity;
     catchImpactFlash.classList.remove("show");
     resetBallToRest();
+    catchBallVisual.classList.remove("ball-bijzonder", "ball-zeldzaam");
+    if (inst.species.rarity === "bijzonder") catchBallVisual.classList.add("ball-bijzonder");
+    else if (inst.species.rarity === "zeldzaam") catchBallVisual.classList.add("ball-zeldzaam");
     catchBallGhost.classList.remove("hidden");
     catchHint.textContent = "👉 Pak de bal en gooi hem in de cirkel!";
     catchResult.classList.add("hidden");
+    [catchResultEmoji, catchResultTitle, catchResultSub, catchContinueBtn].forEach((el) => el.classList.remove("reveal", "pop"));
     catchOverlay.classList.remove("hidden");
   }
 
@@ -577,9 +737,24 @@
   catchBallEl.addEventListener("pointerup", endBallDrag);
   catchBallEl.addEventListener("pointercancel", endBallDrag);
 
+  // Telt zowel ongeldige worpen (bal niet echt opgetild) als voltooide-maar-niet-
+  // afrondende rake worpen mee als "fails" — losstaand van tapsDone, want anders
+  // haalt tapsDone de drempel altijd al in voordat de versoepeling ooit iets kan
+  // doen (bij een rake worp lopen fails en tapsDone namelijk exact gelijk op).
+  function maybeEaseCatch() {
+    if (catchState.fails >= 2 && catchState.tapsNeeded > catchState.tapsDone + 1) {
+      catchState.tapsNeeded -= 1;
+      catchTargetRing.classList.add("ring-large");
+    }
+  }
+
   function dropBallFail(drag) {
     Audio.SFX.mis();
     Audio.vibrate(15);
+    if (catchState) {
+      catchState.fails += 1;
+      maybeEaseCatch();
+    }
     catchHint.textContent = "Til de bal echt op en gooi hem naar de cirkel! 💪";
     catchTargetRing.classList.remove("fail-flash"); void catchTargetRing.offsetWidth; catchTargetRing.classList.add("fail-flash");
     catchBallEl.style.setProperty("--dropx", drag.curX + "px");
@@ -627,6 +802,8 @@
 
   function onBallImpact(opts) {
     opts = opts || {};
+    const thisCatch = catchState;
+    catchField.classList.remove("shake"); void catchField.offsetWidth; catchField.classList.add("shake");
     catchImpactFlash.classList.remove("show"); void catchImpactFlash.offsetWidth; catchImpactFlash.classList.add("show");
     catchTargetRing.classList.add("burst");
     catchCritterEl.classList.add("impact");
@@ -643,24 +820,37 @@
     }
 
     setTimeout(() => {
+      if (catchState !== thisCatch) return;
       catchState.tapsDone += 1;
       catchBallVisual.classList.add("wobble-anim");
       Audio.SFX.wobble();
       Audio.vibrate(20);
 
       setTimeout(() => {
+        if (catchState !== thisCatch) return;
         catchBallVisual.classList.remove("wobble-anim");
         if (catchState.tapsDone >= catchState.tapsNeeded) {
-          setTimeout(() => finishCatch(true), 200);
+          setTimeout(() => { if (catchState === thisCatch) finishCatch(true); }, 200);
         } else {
-          resetBallToRest();
-          catchTargetRing.classList.remove("burst"); void catchTargetRing.offsetWidth;
-          catchTargetRing.classList.remove("rarity-bijzonder", "rarity-zeldzaam");
-          catchTargetRing.classList.add("rarity-" + catchState.inst.species.rarity);
-          catchState.ringStartTs = performance.now();
+          // Dier ontsnapt (nog) niet helemaal, maar breekt wel los uit de bal —
+          // zelfde eenmaal-actieve-klasse discipline als .impact/.caught hierboven.
+          catchState.fails += 1;
+          maybeEaseCatch();
           catchCritterEl.classList.remove("impact");
-          if (bonusXp === 0) catchHint.textContent = "Bijna! Gooi nog een keer! 💪";
-          catchState.busy = false;
+          catchCritterEl.classList.add("escaping");
+          catchCritterEl.addEventListener("animationend", function onEscapeEnd() {
+            catchCritterEl.removeEventListener("animationend", onEscapeEnd);
+            if (catchState !== thisCatch) return;
+            catchCritterEl.className = "catch-critter";
+            spawnDustPoof(catchCritterEl);
+            resetBallToRest();
+            catchTargetRing.classList.remove("burst"); void catchTargetRing.offsetWidth;
+            catchTargetRing.classList.remove("rarity-bijzonder", "rarity-zeldzaam");
+            catchTargetRing.classList.add("rarity-" + catchState.inst.species.rarity);
+            catchState.ringStartTs = performance.now();
+            if (bonusXp === 0) catchHint.textContent = "Het diertje breekt bijna los! Probeer opnieuw! 💪";
+            catchState.busy = false;
+          }, { once: true });
         }
       }, 650);
     }, 260);
@@ -682,19 +872,37 @@
   }
 
   function finishCatch(success) {
+    if (!success) return;
     const inst = catchState.inst;
-    if (success) {
-      Audio.SFX.gevangen();
-      Audio.vibrate([30, 50, 30, 50, 60]);
-      const conf = RARITY_CONFETTI[inst.species.rarity] || RARITY_CONFETTI.gewoon;
+    const thisCatch = catchState;
+    Audio.SFX.gevangen();
+    Audio.vibrate([30, 50, 30, 50, 60]);
+    const conf = RARITY_CONFETTI[inst.species.rarity] || RARITY_CONFETTI.gewoon;
+    const res = addCaught(inst.species.id);
+    if (res.isFirst) { state.unseenNewCatch = true; saveState(); updateNewBadge(); }
+    catchState.pendingEvolution = res.evolvedNow ? inst.species : null;
+    removeCritter(inst.id, true);
+
+    catchResultEmoji.textContent = inst.species.rarity === "zeldzaam" ? "🌟" : inst.species.rarity === "bijzonder" ? "✨" : "🎉";
+    catchResultTitle.textContent = "Gevangen!";
+    catchResultSub.textContent = `${inst.species.naam} — ${res.isFirst ? "Nieuw in je verzameling!" : `Je hebt er nu ${res.entry.count}!`}`;
+    [catchResultEmoji, catchResultTitle, catchResultSub, catchContinueBtn].forEach((el) => el.classList.remove("reveal", "pop"));
+    catchResult.classList.remove("hidden");
+
+    setTimeout(() => {
+      if (catchState !== thisCatch) return;
+      catchResultEmoji.classList.add("pop");
       burstConfetti(catchOverlay, conf.count, conf.colors);
-      const res = addCaught(inst.species.id);
-      catchResultTitle.textContent = "Gevangen! 🎉";
-      catchResultSub.textContent = `${inst.species.naam} — ${res.isFirst ? "Nieuw in je verzameling!" : `Je hebt er nu ${res.entry.count}!`}`;
-      catchResult.classList.remove("hidden");
-      catchState.pendingEvolution = res.evolvedNow ? inst.species : null;
-      removeCritter(inst.id, true);
-    }
+    }, 80);
+    setTimeout(() => {
+      if (catchState !== thisCatch) return;
+      catchResultTitle.classList.add("reveal");
+    }, 380);
+    setTimeout(() => {
+      if (catchState !== thisCatch) return;
+      catchResultSub.classList.add("reveal");
+      catchContinueBtn.classList.add("reveal");
+    }, 680);
   }
 
   catchContinueBtn.addEventListener("click", () => {
@@ -785,6 +993,26 @@
     });
   }
 
+  // ---------------------------------------------------------------- prestatiemedailles
+  const ACHIEVEMENTS = [
+    { icon: "🎯", label: "Eerste vangst", check: (st) => Object.keys(st.caught).length >= 1 },
+    { icon: "🌿", label: "5 soorten", check: (st) => Object.keys(st.caught).length >= 5 },
+    { icon: "🏆", label: "Alles gevonden", check: (st) => Object.keys(st.caught).length >= SPECIES.length },
+    { icon: "✨", label: "Eerste evolutie", check: (st) => Object.values(st.caught).some((e) => e.evolved) },
+    { icon: "💎", label: "Zeldzaam dier", check: (st) => Object.keys(st.caught).some((id) => { const sp = window.DierenData.bySpeciesId(id); return sp && sp.rarity === "zeldzaam"; }) },
+  ];
+  const medalStrip = document.getElementById("medal-strip");
+  function renderMedals() {
+    medalStrip.innerHTML = "";
+    ACHIEVEMENTS.forEach((a) => {
+      const unlocked = a.check(state);
+      const el = document.createElement("div");
+      el.className = "medal" + (unlocked ? "" : " locked");
+      el.innerHTML = `<div class="medal-icon">${a.icon}</div><div class="medal-label">${a.label}</div>`;
+      medalStrip.appendChild(el);
+    });
+  }
+
   // ---------------------------------------------------------------- verzamelscherm
   const collectionGrid = document.getElementById("collection-grid");
   const collectionProgress = document.getElementById("collection-progress");
@@ -806,10 +1034,11 @@
       } else {
         card.innerHTML = `<div class="thumb"><div class="qmark">?</div></div><div class="name">???</div>`;
       }
-      card.addEventListener("click", () => openDetail(sp, owned));
+      card.addEventListener("click", () => openDetail(sp));
       collectionGrid.appendChild(card);
     });
     collectionProgress.textContent = `${found} van ${SPECIES.length} gevonden`;
+    renderMedals();
   }
 
   // ---------------------------------------------------------------- detail-modal
@@ -820,8 +1049,11 @@
   const detailBlurb = document.getElementById("detail-blurb");
   document.getElementById("detail-close").addEventListener("click", () => detailModal.classList.add("hidden"));
 
-  function openDetail(sp, owned) {
-    Audio.SFX.klik();
+  let detailIndex = 0;
+  function renderDetail(i) {
+    detailIndex = ((i % SPECIES.length) + SPECIES.length) % SPECIES.length;
+    const sp = SPECIES[detailIndex];
+    const owned = state.caught[sp.id];
     if (owned) {
       detailSprite.innerHTML = renderAnimalSVG(sp, { size: 130, evolved: owned.evolved });
       detailName.textContent = owned.evolved ? `${sp.evoNaam} (${sp.naam})` : sp.naam;
@@ -835,6 +1067,23 @@
     }
     detailModal.classList.remove("hidden");
   }
+
+  function openDetail(sp) {
+    Audio.SFX.klik();
+    renderDetail(SPECIES.indexOf(sp));
+  }
+
+  document.getElementById("detail-prev").addEventListener("click", (ev) => { ev.stopPropagation(); Audio.SFX.klik(); renderDetail(detailIndex - 1); });
+  document.getElementById("detail-next").addEventListener("click", (ev) => { ev.stopPropagation(); Audio.SFX.klik(); renderDetail(detailIndex + 1); });
+
+  let detailSwipeStartX = null;
+  detailSprite.addEventListener("pointerdown", (ev) => { detailSwipeStartX = ev.clientX; });
+  detailSprite.addEventListener("pointerup", (ev) => {
+    if (detailSwipeStartX === null) return;
+    const dx = ev.clientX - detailSwipeStartX;
+    detailSwipeStartX = null;
+    if (Math.abs(dx) > 40) { Audio.SFX.klik(); renderDetail(detailIndex + (dx < 0 ? 1 : -1)); }
+  });
 
   // ---------------------------------------------------------------- gevecht
   const BATTLE_ATTACK_ANIM = {
@@ -977,6 +1226,10 @@
     battle = null;
     renderBattlePicker();
   });
+
+  // ---------------------------------------------------------------- splash
+  const splashOverlay = document.getElementById("splash-overlay");
+  setTimeout(() => splashOverlay.classList.add("hidden"), 1300);
 
   // ---------------------------------------------------------------- welkomstscherm
   const welcomeOverlay = document.getElementById("welcome-overlay");

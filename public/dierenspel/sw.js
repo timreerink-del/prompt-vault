@@ -1,5 +1,5 @@
 /* Service worker: cachet alles bij de eerste keer laden zodat het spel daarna volledig offline werkt. */
-const CACHE_VERSION = "dierenspel-v1";
+const CACHE_VERSION = "dierenspel-v2";
 
 const PRECACHE_URLS = [
   "./index.html",

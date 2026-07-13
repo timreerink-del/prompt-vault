@@ -41,16 +41,16 @@
     mis() { tone(260, 0, 0.16, "sine", 0.12, 130); },
     wobble() { tone(220, 0, 0.1, "sine", 0.12, 260); },
     gevangen() {
-      tone(523, 0, 0.12, "triangle", 0.2);
-      tone(659, 0.1, 0.12, "triangle", 0.2);
-      tone(784, 0.2, 0.12, "triangle", 0.2);
-      tone(1046, 0.32, 0.22, "triangle", 0.22);
+      tone(523, 0, 0.12, "triangle", 0.2); tone(659, 0, 0.12, "sine", 0.09);
+      tone(659, 0.1, 0.12, "triangle", 0.2); tone(784, 0.1, 0.12, "sine", 0.08);
+      tone(784, 0.2, 0.12, "triangle", 0.2); tone(988, 0.2, 0.12, "sine", 0.08);
+      tone(1046, 0.32, 0.22, "triangle", 0.22); tone(1318, 0.32, 0.22, "sine", 0.1);
     },
     levelup() {
-      tone(392, 0, 0.1, "square", 0.15);
-      tone(523, 0.09, 0.1, "square", 0.15);
-      tone(659, 0.18, 0.1, "square", 0.15);
-      tone(784, 0.27, 0.24, "square", 0.18);
+      tone(392, 0, 0.1, "square", 0.15); tone(494, 0, 0.1, "triangle", 0.08);
+      tone(523, 0.09, 0.1, "square", 0.15); tone(659, 0.09, 0.1, "triangle", 0.08);
+      tone(659, 0.18, 0.1, "square", 0.15); tone(784, 0.18, 0.1, "triangle", 0.08);
+      tone(784, 0.27, 0.24, "square", 0.18); tone(988, 0.27, 0.24, "triangle", 0.1);
     },
     aanval() { tone(180, 0, 0.12, "sawtooth", 0.18, 90); },
     raak() { tone(140, 0, 0.15, "square", 0.2, 60); },
@@ -58,6 +58,9 @@
       [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, i * 0.09, 0.16, "triangle", 0.2));
     },
     klik() { tone(700, 0, 0.05, "sine", 0.1); },
+    vondst() {
+      tone(660, 0, 0.1, "triangle", 0.16); tone(880, 0.08, 0.14, "triangle", 0.16, 1180);
+    },
   };
 
   // Aanvalsgeluid per archetype — geeft elk dier een eigen "stem" in gevecht.

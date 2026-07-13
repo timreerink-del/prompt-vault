@@ -67,6 +67,7 @@
       hp: 18, atk: 6,
       vangKeer: 2,
       evolveBij: 3,
+      nachtdier: true,
       blurb: "Fladdert zachtjes tussen de wolken en laat een sprankelspoor achter.",
     },
     {
@@ -145,6 +146,7 @@
       hp: 23, atk: 6,
       vangKeer: 2,
       evolveBij: 3,
+      nachtdier: true,
       blurb: "Zijn schubben glinsteren als kleine spiegeltjes in de zon.",
     },
     {
@@ -356,5 +358,28 @@
     return SPECIES.find((s) => s.id === id);
   }
 
-  global.DierenData = { SPECIES, RARITY_LABEL, renderAnimalSVG, bySpeciesId };
+  // Personage-tekenaar — hergebruikt dezelfde grad()/face()/shadowEllipse()-helpers
+  // als de dieren, zodat de speler dezelfde 3D-ogende shading krijgt. accent is
+  // {licht, donker}, zelfde vorm als species.kleur.
+  function renderPlayerSVG(accent, size) {
+    size = size || 96;
+    const gidBody = uid("g");
+    const gidHead = uid("g");
+    const bodyDefs = grad(gidBody, accent.licht, accent.donker, 0.35, 0.3, 0.75);
+    const headDefs = grad(gidHead, "#ffe3b8", "#f6b877", 0.35, 0.28, 0.75);
+    return svgOpen(size) + `<g>
+      ${bodyDefs}${headDefs}
+      ${shadowEllipse(50, 90, 20, 5)}
+      <ellipse cx="33" cy="66" rx="9" ry="12" fill="${accent.donker}"/>
+      <ellipse cx="33" cy="66" rx="5.5" ry="8" fill="${accent.licht}" opacity="0.7"/>
+      <ellipse cx="50" cy="70" rx="20" ry="18" fill="url(#${gidBody})"/>
+      <ellipse cx="50" cy="80" rx="11" ry="7" fill="#fff8ec" opacity="0.9"/>
+      <ellipse cx="40" cy="58" rx="6" ry="4" fill="#fff" opacity="0.3"/>
+      <circle cx="50" cy="37" r="17" fill="url(#${gidHead})"/>
+      ${face(50, 37, 6.4)}
+      <path d="M 34 29 Q 50 16 66 29 Q 61 22 50 20 Q 39 22 34 29 Z" fill="${accent.donker}"/>
+    </g></svg>`;
+  }
+
+  global.DierenData = { SPECIES, RARITY_LABEL, renderAnimalSVG, renderPlayerSVG, bySpeciesId };
 })(window);

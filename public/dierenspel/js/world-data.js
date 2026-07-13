@@ -34,6 +34,13 @@
     { x: WORLD_W * 0.18, y: WORLD_H - 1650, rx: 150, ry: 100 },
   ];
 
+  // Korte zijpaadjes, puur decoratief — tikken-om-te-lopen werkt overal al, dus dit
+  // voegt geen eigen looplogica toe, alleen een extra streep op de kaart.
+  const sidePaths = [
+    [{ x: WORLD_W * 0.42, y: WORLD_H - 420 }, { x: WORLD_W * 0.24, y: WORLD_H - 480 }, { x: WORLD_W * 0.14, y: WORLD_H - 580 }],
+    [{ x: WORLD_W * 0.55, y: WORLD_H - 1480 }, { x: WORLD_W * 0.74, y: WORLD_H - 1540 }, { x: WORLD_W * 0.84, y: WORLD_H - 1640 }],
+  ];
+
   function nearPath(x, y, minDist) {
     for (let i = 0; i < pathPoints.length - 1; i++) {
       const a = pathPoints[i], b = pathPoints[i + 1];
@@ -84,8 +91,9 @@
   ];
 
   const butterflySpots = scatter(7, "butterfly", [1, 1], { pathClear: 30 });
+  const discoverySpots = scatter(3, "discovery", [1, 1], { pathClear: 60, waterClear: 60 });
 
   global.DierenWereld = {
-    WORLD_W, WORLD_H, START, pathPoints, waterPools, deco, butterflySpots, nearWater,
+    WORLD_W, WORLD_H, START, pathPoints, sidePaths, waterPools, deco, butterflySpots, discoverySpots, nearWater,
   };
 })(window);

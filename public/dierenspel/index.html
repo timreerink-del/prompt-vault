@@ -36,16 +36,14 @@
         <div id="player" class="player">
           <div class="player-shadow"></div>
           <div class="player-body">
-            <div class="player-bag"></div>
-            <div class="player-head">
-              <div class="player-face">
-                <span class="eye eye-l"></span><span class="eye eye-r"></span>
-                <span class="mouth"></span>
-              </div>
-            </div>
+            <div id="player-svg" class="player-svg"></div>
           </div>
         </div>
       </div>
+      <div id="edge-cue-top" class="edge-cue edge-top"></div>
+      <div id="edge-cue-bottom" class="edge-cue edge-bottom"></div>
+      <div id="edge-cue-left" class="edge-cue edge-left"></div>
+      <div id="edge-cue-right" class="edge-cue edge-right"></div>
     </div>
 
     <!-- HUD -->
@@ -62,6 +60,7 @@
       </button>
     </div>
 
+    <div id="nearby-hint" class="nearby-hint" aria-live="polite"></div>
     <div id="spawn-banner" class="spawn-banner" aria-live="polite"></div>
 
     <!-- BOTTOM NAV -->
@@ -70,7 +69,7 @@
         <span class="nav-icon">🗺️</span><span>Kaart</span>
       </button>
       <button class="nav-btn" data-screen="screen-collection" type="button">
-        <span class="nav-icon">📘</span><span>Mijn Dieren</span>
+        <span class="nav-icon">📘</span><span>Mijn Dieren</span><span class="nav-dot"></span>
       </button>
       <button class="nav-btn" data-screen="screen-battle" type="button">
         <span class="nav-icon">⚔️</span><span>Gevecht</span>
@@ -84,10 +83,11 @@
       <h1>Mijn Dieren</h1>
       <p id="collection-progress" class="panel-sub">0 van 12 gevonden</p>
     </header>
+    <div id="medal-strip" class="medal-strip"></div>
     <div id="collection-grid" class="collection-grid"></div>
     <nav class="bottom-nav">
       <button class="nav-btn" data-screen="screen-map" type="button"><span class="nav-icon">🗺️</span><span>Kaart</span></button>
-      <button class="nav-btn active" data-screen="screen-collection" type="button"><span class="nav-icon">📘</span><span>Mijn Dieren</span></button>
+      <button class="nav-btn active" data-screen="screen-collection" type="button"><span class="nav-icon">📘</span><span>Mijn Dieren</span><span class="nav-dot"></span></button>
       <button class="nav-btn" data-screen="screen-battle" type="button"><span class="nav-icon">⚔️</span><span>Gevecht</span></button>
     </nav>
   </section>
@@ -99,7 +99,7 @@
       <p class="panel-sub">Kies een dier en daag een wild diertje uit!</p>
     </header>
     <div id="battle-picker" class="battle-picker"></div>
-    <div id="battle-arena" class="battle-arena hidden">
+    <div id="battle-arena" class="battle-arena ground-scene-bg hidden">
       <div class="battle-side battle-enemy">
         <div class="hp-label"><span id="enemy-name">?</span></div>
         <div class="hp-track"><div id="enemy-hp" class="hp-fill"></div></div>
@@ -118,14 +118,14 @@
     </div>
     <nav class="bottom-nav">
       <button class="nav-btn" data-screen="screen-map" type="button"><span class="nav-icon">🗺️</span><span>Kaart</span></button>
-      <button class="nav-btn" data-screen="screen-collection" type="button"><span class="nav-icon">📘</span><span>Mijn Dieren</span></button>
+      <button class="nav-btn" data-screen="screen-collection" type="button"><span class="nav-icon">📘</span><span>Mijn Dieren</span><span class="nav-dot"></span></button>
       <button class="nav-btn active" data-screen="screen-battle" type="button"><span class="nav-icon">⚔️</span><span>Gevecht</span></button>
     </nav>
   </section>
 
   <!-- ===== VANGST-OVERLAY ===== -->
   <div id="catch-overlay" class="overlay hidden">
-    <div class="catch-sky"></div>
+    <div class="catch-sky ground-scene-bg"></div>
     <p id="catch-hint" class="catch-hint">👉 Pak de bal en gooi hem in de cirkel!</p>
     <div id="catch-field" class="catch-field">
       <div id="catch-target-ring" class="catch-target-ring"></div>
@@ -139,6 +139,7 @@
       </div>
     </div>
     <div id="catch-result" class="catch-result hidden">
+      <div id="catch-result-emoji" class="catch-result-emoji">🎉</div>
       <div id="catch-result-title" class="catch-result-title">Gevangen!</div>
       <div id="catch-result-sub" class="catch-result-sub"></div>
       <button id="catch-continue" class="round-btn action-btn" type="button">Verder!</button>
@@ -149,7 +150,11 @@
   <div id="detail-modal" class="overlay hidden">
     <div class="detail-card">
       <button id="detail-close" class="round-btn small detail-close" type="button" aria-label="Sluiten">✕</button>
-      <div id="detail-sprite" class="detail-sprite"></div>
+      <div class="detail-nav">
+        <button id="detail-prev" class="round-btn small" type="button" aria-label="Vorige">‹</button>
+        <div id="detail-sprite" class="detail-sprite"></div>
+        <button id="detail-next" class="round-btn small" type="button" aria-label="Volgende">›</button>
+      </div>
       <h2 id="detail-name">-</h2>
       <p id="detail-meta" class="panel-sub">-</p>
       <p id="detail-blurb" class="detail-blurb">-</p>
@@ -173,8 +178,16 @@
     <div class="detail-card welcome-card">
       <h1>Welkom bij het Diervangspel!</h1>
       <p>Tik op het pad om te lopen. Zoek dieren en tik erop om ze te vangen. Veel plezier! 🐾</p>
+      <p class="panel-sub">Kies je kleur:</p>
+      <div id="accent-picker" class="accent-picker"></div>
       <button id="welcome-start" class="round-btn action-btn" type="button">Start!</button>
     </div>
+  </div>
+
+  <!-- ===== SPLASH ===== -->
+  <div id="splash-overlay" class="overlay">
+    <div class="splash-logo">🐾</div>
+    <div class="splash-title">Diervangspel</div>
   </div>
 
 </div>
