@@ -75,6 +75,38 @@
     zwem() { tone(420, 0, 0.16, "sine", 0.16, 180); },
   };
 
+  // Optionele, procedurele achtergrondmuziek — geen gebundeld audiobestand, dus
+  // offline-first blijft intact. Bewust traag/willekeurig (niet als loop hoorbaar)
+  // om niet irritant te worden bij herhaald gebruik tijdens een autorit.
+  const MUSIC_NOTES = [392, 440, 494, 587, 659, 784];
+  let musicTimer = null;
+  let musicToken = 0;
+
+  function scheduleNextNote(token) {
+    if (token !== musicToken) return;
+    const freq = MUSIC_NOTES[Math.floor(Math.random() * MUSIC_NOTES.length)];
+    tone(freq, 0, 2.2, "sine", 0.045, freq * 1.01);
+    const delay = 2400 + Math.random() * 1800;
+    musicTimer = setTimeout(() => scheduleNextNote(token), delay);
+  }
+
+  function startMusic() {
+    if (musicTimer) return;
+    ensureCtx();
+    musicToken += 1;
+    scheduleNextNote(musicToken);
+  }
+
+  function stopMusic() {
+    musicToken += 1; // maakt een eventueel al ingeplande noot ongeldig
+    clearTimeout(musicTimer);
+    musicTimer = null;
+  }
+
+  function isMusicPlaying() {
+    return !!musicTimer;
+  }
+
   function setMuted(v) {
     muted = v;
   }
@@ -90,5 +122,8 @@
     }
   }
 
-  global.DierenAudio = { SFX, ARCHETYPE_ATTACK_SFX, setMuted, isMuted, vibrate, unlock: ensureCtx };
+  global.DierenAudio = {
+    SFX, ARCHETYPE_ATTACK_SFX, setMuted, isMuted, vibrate, unlock: ensureCtx,
+    Music: { start: startMusic, stop: stopMusic, isPlaying: isMusicPlaying },
+  };
 })(window);

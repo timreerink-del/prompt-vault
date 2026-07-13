@@ -32,7 +32,10 @@
 
   // ---------------------------------------------------------------- state
   function defaultState() {
-    return { caught: {}, xp: 0, level: 1, muted: false, seenWelcome: false, playerAccent: 0, unseenNewCatch: false };
+    return {
+      caught: {}, xp: 0, level: 1, muted: false, seenWelcome: false, playerAccent: 0,
+      unseenNewCatch: false, buddyId: null, musicOn: false,
+    };
   }
   let state = loadState();
 
@@ -80,8 +83,10 @@
     }
     const isFirst = entry.count === 1;
     state.caught[speciesId] = entry;
+    state.buddyId = speciesId; // laatst gevangen dier loopt voortaan mee
     saveState();
     addXP(RARITY_XP[sp.rarity] + (isFirst ? 15 : 0));
+    renderBuddyAppearance();
     return { entry, isFirst, evolvedNow };
   }
 
@@ -150,7 +155,20 @@
     Audio.setMuted(state.muted);
     refreshMuteIcon();
     saveState();
-    if (!state.muted) Audio.SFX.klik();
+    if (!state.muted) { Audio.SFX.klik(); if (state.musicOn) Audio.Music.start(); }
+    else { Audio.Music.stop(); }
+  });
+
+  // ---------------------------------------------------------------- muziek (optioneel, standaard uit)
+  const btnMusic = document.getElementById("btn-music");
+  function refreshMusicIcon() { btnMusic.classList.toggle("muted-icon", !state.musicOn); }
+  refreshMusicIcon();
+  btnMusic.addEventListener("click", () => {
+    Audio.unlock();
+    state.musicOn = !state.musicOn;
+    saveState();
+    refreshMusicIcon();
+    if (state.musicOn && !state.muted) Audio.Music.start(); else Audio.Music.stop();
   });
 
   // ---------------------------------------------------------------- wereld opbouwen
@@ -290,6 +308,52 @@
     playerEl.style.transform = `scaleX(${flip}) scale(${depth.scale.toFixed(3)})`;
   }
 
+  // ---------------------------------------------------------------- buddy-dier
+  // Loopt vertraagd achter het personage aan: elke frame komt de huidige
+  // spelerspositie in een kleine ring-buffer; de buddy beweegt (stap-geklemd,
+  // zelfde idioom als player.target/critter.target elders) naar het OUDSTE
+  // sample daarin — geeft natuurlijke vertraging zonder pathfinding.
+  const buddyEl = document.getElementById("buddy");
+  const buddySpriteEl = document.getElementById("buddy-sprite");
+  const BUDDY_TRAIL_LEN = 14;
+  let playerTrail = [];
+  const buddy = { x: player.x, y: player.y, speed: 240, facing: 1, lastX: player.x };
+
+  function renderBuddyAppearance() {
+    if (!state.buddyId) { buddyEl.classList.add("hidden"); return; }
+    const sp = window.DierenData.bySpeciesId(state.buddyId);
+    const owned = state.caught[state.buddyId];
+    if (!sp || !owned) { buddyEl.classList.add("hidden"); return; }
+    buddyEl.classList.remove("hidden");
+    buddySpriteEl.innerHTML = renderAnimalSVG(sp, { size: 40, evolved: owned.evolved });
+  }
+  renderBuddyAppearance();
+
+  function updateBuddy(dt) {
+    playerTrail.push({ x: player.x, y: player.y });
+    if (playerTrail.length > BUDDY_TRAIL_LEN) playerTrail.shift();
+    if (!state.buddyId) return;
+    const target = playerTrail[0];
+    const dx = target.x - buddy.x, dy = target.y - buddy.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 2) {
+      const step = Math.min(dist, buddy.speed * dt);
+      buddy.x += (dx / dist) * step;
+      buddy.y += (dy / dist) * step;
+    }
+    placeBuddyEl();
+  }
+
+  function placeBuddyEl() {
+    buddyEl.style.left = buddy.x + "px";
+    buddyEl.style.top = buddy.y + "px";
+    buddyEl.style.zIndex = String(Math.round(buddy.y) - 1);
+    if (Math.abs(buddy.x - buddy.lastX) > 1) buddy.facing = buddy.x < buddy.lastX ? -1 : 1;
+    buddy.lastX = buddy.x;
+    const depth = depthFor(buddy.y);
+    buddyEl.style.transform = `scaleX(${buddy.facing}) scale(${depth.scale.toFixed(3)})`;
+  }
+
   const playerSvgEl = document.getElementById("player-svg");
   function renderPlayerAppearance() {
     playerSvgEl.innerHTML = renderPlayerSVG(PLAYER_ACCENTS[state.playerAccent] || PLAYER_ACCENTS[0], 64);
@@ -324,6 +388,7 @@
 
   viewportEl.addEventListener("click", (ev) => {
     Audio.unlock();
+    if (state.musicOn && !state.muted && !Audio.Music.isPlaying()) Audio.Music.start();
     const spotHit = ev.target.closest(".discovery-spot");
     if (spotHit) {
       const rec = discoverySpotEls[Number(spotHit.dataset.spotIndex)];
@@ -603,6 +668,7 @@
     }
     playerEl.classList.toggle("walking", player.walking);
     placePlayerEl();
+    updateBuddy(dt);
     updateCamera();
     updateCritters(dt, ts);
     updateDiscoverySpots(ts);
@@ -1240,6 +1306,7 @@
     state.seenWelcome = true;
     saveState();
     welcomeOverlay.classList.add("hidden");
+    if (state.musicOn && !state.muted) Audio.Music.start();
   });
 
   // ---------------------------------------------------------------- init

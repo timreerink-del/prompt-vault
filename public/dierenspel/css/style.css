@@ -31,6 +31,14 @@ html.evening {
   --panel-bg: #fdf9ec;
 }
 
+/* Avond-tint op de sprites zelf (backlog 10.4) — filter is niet cumulatief tussen
+   losse regels, dus elke override herhaalt bewust de bestaande filter-waarde van
+   die selector plus de nieuwe dim/gloed-termen. */
+html.evening .player-svg { filter: drop-shadow(0 6px 6px rgba(10,30,15,0.22)) brightness(0.8) saturate(1.15) drop-shadow(0 0 6px rgba(130,150,255,0.4)); }
+html.evening .critter-sprite { filter: drop-shadow(0 6px 6px rgba(10,30,15,0.2)) brightness(0.8) saturate(1.15) drop-shadow(0 0 6px rgba(130,150,255,0.4)); }
+html.evening .critter.evolved .critter-sprite { filter: drop-shadow(0 0 8px rgba(255,230,140,0.85)) drop-shadow(0 6px 6px rgba(10,30,15,0.2)) brightness(0.8) saturate(1.15); }
+html.evening .buddy-sprite { filter: drop-shadow(0 4px 4px rgba(10,30,15,0.2)) brightness(0.8) saturate(1.15) drop-shadow(0 0 5px rgba(130,150,255,0.35)); }
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
@@ -232,6 +240,18 @@ h1, h2, p { margin: 0; }
 }
 .player-body { position: absolute; inset: 0; }
 .player-svg { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 6px 6px rgba(10,30,15,0.22)); }
+
+/* ---------- Buddy-dier (loopt vertraagd mee) ---------- */
+.buddy { position: absolute; width: 40px; height: 40px; margin: -34px 0 0 -20px; pointer-events: none; }
+.buddy.hidden { display: none; }
+.buddy-shadow {
+  position: absolute; bottom: -2px; left: 50%; width: 26px; height: 8px; margin-left: -13px;
+  border-radius: 50%; background: radial-gradient(ellipse at center, rgba(10,30,15,0.35), transparent 75%);
+}
+.buddy-sprite {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  animation: breathe 1.8s ease-in-out infinite; filter: drop-shadow(0 4px 4px rgba(10,30,15,0.2));
+}
 @keyframes playerbob {
   0%, 100% { transform: translateY(0) rotate(-2deg); }
   50% { transform: translateY(-6px) rotate(2deg); }
@@ -282,6 +302,7 @@ h1, h2, p { margin: 0; }
   display: flex; align-items: center; justify-content: space-between; z-index: 10;
 }
 .hud-left { display: flex; flex-direction: column; gap: 6px; }
+.hud-actions { display: flex; align-items: center; gap: 8px; }
 .hud-level-pill {
   background: linear-gradient(180deg, #fffef8, #fff2cf);
   border-radius: 999px; padding: 6px 16px; box-shadow: var(--shadow-soft);
@@ -306,6 +327,8 @@ h1, h2, p { margin: 0; }
 }
 .round-btn:active { transform: scale(0.9); }
 .round-btn.small { width: 46px; height: 46px; }
+.music-icon { font-size: 18px; filter: grayscale(0); transition: filter 0.15s ease, opacity 0.15s ease; }
+.round-btn.muted-icon .music-icon { filter: grayscale(1); opacity: 0.4; }
 
 .spawn-banner {
   position: absolute; top: 72px; left: 50%; transform: translate(-50%, -12px);
