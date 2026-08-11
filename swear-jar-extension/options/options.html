@@ -28,6 +28,34 @@
     </section>
 
     <section class="card">
+      <h2>Voice capture (meetings)</h2>
+      <label class="row">
+        <input type="checkbox" id="voiceEnabled" />
+        <span>Listen to my microphone during Google Meet and Zoom (web) calls</span>
+      </label>
+      <p class="hint warning">
+        ⚠️ This is different from the rest of the jar. Chrome's built-in speech
+        recognition sends your microphone audio to Google's servers to turn it
+        into text — it is <strong>not</strong> processed on-device, unlike the
+        page-text scanner. Only your own mic is captured (not other
+        participants), only on meet.google.com / zoom.us tabs, and only while
+        this is turned on. A small "🎙️ Swear Jar listening" badge appears in
+        the corner of the tab whenever it's active.
+      </p>
+      <label class="row row-inline">
+        <span>Recognition language</span>
+        <select id="voiceLang">
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="nl-NL">Nederlands</option>
+          <option value="de-DE">Deutsch</option>
+          <option value="fr-FR">Français</option>
+          <option value="es-ES">Español</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="card">
       <h2>Muted sites</h2>
       <p class="hint">The jar won't scan pages on these hostnames.</p>
       <div class="add-row">

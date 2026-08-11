@@ -10,6 +10,12 @@ export const DEFAULT_SETTINGS = {
   customWords: [], // [{word, severity}]
   disabledWords: [], // words from DEFAULT_WORDS (or custom) to ignore
   mutedSites: [], // hostnames the extension should not scan
+  // Voice capture (src/meet-voice.js) — off by default. Unlike the text
+  // scanner, this sends microphone audio to the browser's speech-recognition
+  // service (Google's servers, not on-device) to get a transcript, so it
+  // requires explicit opt-in from the Options page.
+  voiceEnabled: false,
+  voiceLang: "en-US",
 };
 
 export const DEFAULT_STATS = {
@@ -17,7 +23,8 @@ export const DEFAULT_STATS = {
   points: 0, // severity-weighted points (drives jar fill %)
   byWord: {}, // { word: count }
   bySite: {}, // { hostname: count }
-  history: [], // [{ word, severity, site, ts }] most recent last, capped
+  bySource: { text: 0, voice: 0 }, // page text vs. meeting mic transcription
+  history: [], // [{ word, severity, site, source, ts }] most recent last, capped
   lastAdded: null, // timestamp of the most recent catch, used by the popup
   // to know which history entries are "new" since it was last opened.
 };
@@ -47,20 +54,25 @@ export async function resetStats() {
 }
 
 /**
- * Records a batch of catches: [{word, severity}], all from the same page.
- * Returns the updated stats object.
+ * Records a batch of catches: [{word, severity, source}], all from the same
+ * page. `source` is "text" (page scan) or "voice" (meeting mic transcript);
+ * defaults to "text" for callers that don't tag it. Returns the updated
+ * stats object.
  */
 export async function recordCatches(catches, site) {
   if (!catches || catches.length === 0) return getStats();
   const stats = await getStats();
+  if (!stats.bySource) stats.bySource = { text: 0, voice: 0 };
   const now = Date.now();
 
-  for (const { word, severity } of catches) {
+  for (const { word, severity, source } of catches) {
+    const src = source === "voice" ? "voice" : "text";
     stats.total += 1;
     stats.points += SEVERITY_POINTS[severity] ?? SEVERITY_POINTS[2];
     stats.byWord[word] = (stats.byWord[word] || 0) + 1;
+    stats.bySource[src] = (stats.bySource[src] || 0) + 1;
     if (site) stats.bySite[site] = (stats.bySite[site] || 0) + 1;
-    stats.history.push({ word, severity, site: site || null, ts: now });
+    stats.history.push({ word, severity, site: site || null, source: src, ts: now });
   }
   if (stats.history.length > HISTORY_CAP) {
     stats.history = stats.history.slice(stats.history.length - HISTORY_CAP);

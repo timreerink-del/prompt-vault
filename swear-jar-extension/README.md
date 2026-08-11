@@ -21,8 +21,15 @@ jar, but for your browser.
 - **Fully customizable** — add your own words (with severity), disable any
   built-in word, adjust how many points fill the jar, and optionally show a
   small on-page toast every time a word is caught.
-- **100% local** — everything is stored in `chrome.storage.local`. No
-  network requests, no analytics, no external servers.
+- **Voice capture for meetings** *(off by default)* — on Google Meet and
+  Zoom's web client, optionally transcribe your own microphone with the
+  browser's speech recognition and catch swearing you *say*, not just text
+  on the page. See [Voice capture](#voice-capture-meetings) below — this is
+  the one feature that isn't fully local.
+- **Local by default** — everything is stored in `chrome.storage.local`. No
+  network requests, no analytics, no external servers — *unless* you turn on
+  voice capture, which relies on the browser sending audio to Google's
+  speech-recognition service (see below).
 
 ## Install (unpacked, for development/testing)
 
@@ -46,9 +53,41 @@ swear-jar-extension/
 │                           # MV3 content scripts can't statically `import`,
 │                           # so this inlines its own small copy of the word list)
 ├── popup/                 # toolbar popup: animated jar, stats, site mute toggle
-├── options/                # settings page: word list, muted sites, jar cap, reset
+├── options/                # settings page: word list, muted sites, jar cap, voice capture, reset
 └── scripts/generate-icons.js  # regenerates icons/*.png (no image libs needed)
 ```
+
+Two additional files support voice capture:
+
+- `src/wordmatch.js` — the word-matching regex logic, shared (as a classic
+  script) between `content.js` and `meet-voice.js` so both content-script
+  entries use identical matching.
+- `src/meet-voice.js` — a second content script, injected only on
+  `meet.google.com` and `*.zoom.us`, that runs the browser's speech
+  recognition on your microphone and feeds any caught words through the
+  same pipeline as the page-text scanner.
+
+## Voice capture (meetings)
+
+Turned **off by default**. When enabled in Settings, on Google Meet or
+Zoom's web client the extension starts the browser's built-in
+`SpeechRecognition` on your microphone and checks the transcript for swear
+words, exactly like it checks page text. A small "🎙️ Swear Jar listening"
+badge appears in the corner of the tab whenever it's actively listening, and
+the popup shows the same status when you're on a supported meeting site.
+
+**Read before enabling:** Chrome's speech recognition is not on-device — it
+sends your microphone audio to Google's servers to produce a transcript.
+That's a real difference from the rest of the extension, which never makes
+a network call. Only *your own* microphone is captured (not other call
+participants, and not tab/system audio), only on `meet.google.com` /
+`*.zoom.us` tabs, and only while the toggle is on. It stops automatically
+when the tab is hidden or backgrounded, and you can flip it off any time
+from Settings.
+
+Supported today: Google Meet and Zoom's web client (in-browser meetings —
+the Zoom/Meet desktop apps aren't reachable by a Chrome extension). If your
+browser doesn't support `SpeechRecognition`, the feature silently no-ops.
 
 ## How matching works
 
@@ -75,6 +114,12 @@ node scripts/generate-icons.js
 
 ## Privacy
 
-The extension never sends page content or statistics anywhere. All
-scanning happens locally in the content script, and all stats live in
-`chrome.storage.local` on your machine.
+The page-text scanner (the default behavior) never sends page content or
+statistics anywhere — all scanning happens locally in the content script,
+and all stats live in `chrome.storage.local` on your machine.
+
+The one exception is the opt-in [voice capture](#voice-capture-meetings)
+feature: while it's turned on, your microphone audio on Meet/Zoom tabs is
+sent to Google's speech-recognition service to be transcribed. It's off by
+default and documented in detail above — turn it on only if you're
+comfortable with that tradeoff.

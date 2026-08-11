@@ -12,14 +12,19 @@ const els = {
   totalCount: document.getElementById("totalCount"),
   fillPercent: document.getElementById("fillPercent"),
   topWords: document.getElementById("topWords"),
+  sourceSplit: document.getElementById("sourceSplit"),
+  voiceStatus: document.getElementById("voiceStatus"),
   siteToggle: document.getElementById("siteToggle"),
   siteHost: document.getElementById("siteHost"),
   resetBtn: document.getElementById("resetBtn"),
   optionsBtn: document.getElementById("optionsBtn"),
 };
 
+const VOICE_CAPABLE_HOST = /(^|\.)meet\.google\.com$|(^|\.)zoom\.us$/;
+
 let currentSettings = null;
 let currentHost = null;
+let currentTab = null;
 
 function setFill(percent, animate = true) {
   const clamped = Math.max(0, Math.min(1, percent));
@@ -88,10 +93,14 @@ function renderTopWords(stats) {
 async function renderSiteToggle() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    currentTab = tab || null;
     if (tab?.url && /^https?:/.test(tab.url)) {
       currentHost = new URL(tab.url).hostname;
+    } else {
+      currentHost = null;
     }
   } catch {
+    currentTab = null;
     currentHost = null;
   }
   if (!currentHost) {
@@ -100,6 +109,48 @@ async function renderSiteToggle() {
   }
   els.siteHost.textContent = currentHost;
   els.siteToggle.checked = (currentSettings.mutedSites || []).includes(currentHost);
+}
+
+function renderSourceSplit(stats) {
+  const { text = 0, voice = 0 } = stats.bySource || {};
+  els.sourceSplit.innerHTML = "";
+  if (text === 0 && voice === 0) return;
+  els.sourceSplit.innerHTML = `
+    <span>📄 <span class="src-count">${text}</span> from pages</span>
+    <span>🎙️ <span class="src-count">${voice}</span> from calls</span>
+  `;
+}
+
+async function renderVoiceStatus() {
+  const el = els.voiceStatus;
+  if (!currentHost || !VOICE_CAPABLE_HOST.test(currentHost)) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+
+  if (!currentSettings.voiceEnabled) {
+    el.className = "voice-status off";
+    el.textContent = "🎙️ Voice capture is off — enable it in Settings";
+    return;
+  }
+
+  try {
+    const response = await chrome.tabs.sendMessage(currentTab.id, { type: "SWEAR_JAR_VOICE_STATUS" });
+    if (response?.blocked) {
+      el.className = "voice-status blocked";
+      el.textContent = "🎙️ Mic access blocked for this site";
+    } else if (response?.listening) {
+      el.className = "voice-status listening";
+      el.textContent = "🎙️ Listening for swearing on this call";
+    } else {
+      el.className = "voice-status off";
+      el.textContent = "🎙️ Voice capture starting…";
+    }
+  } catch {
+    el.className = "voice-status off";
+    el.textContent = "🎙️ Voice capture not active on this tab yet";
+  }
 }
 
 async function loadAndRender({ animateFill = true, animateNewCoins = true } = {}) {
@@ -111,7 +162,9 @@ async function loadAndRender({ animateFill = true, animateNewCoins = true } = {}
 
   renderTotals(stats);
   renderTopWords(stats);
+  renderSourceSplit(stats);
   await renderSiteToggle();
+  await renderVoiceStatus();
 
   const { [LAST_SEEN_KEY]: lastSeenTs } = await chrome.storage.local.get(LAST_SEEN_KEY);
   const newCatches = animateNewCoins

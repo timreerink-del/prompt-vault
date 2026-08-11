@@ -5,6 +5,8 @@ const els = {
   enabled: document.getElementById("enabled"),
   toastEnabled: document.getElementById("toastEnabled"),
   jarCapPoints: document.getElementById("jarCapPoints"),
+  voiceEnabled: document.getElementById("voiceEnabled"),
+  voiceLang: document.getElementById("voiceLang"),
   muteInput: document.getElementById("muteInput"),
   muteAdd: document.getElementById("muteAdd"),
   muteList: document.getElementById("muteList"),
@@ -95,6 +97,8 @@ async function init() {
   els.enabled.checked = settings.enabled;
   els.toastEnabled.checked = settings.toastEnabled;
   els.jarCapPoints.value = settings.jarCapPoints;
+  els.voiceEnabled.checked = settings.voiceEnabled;
+  els.voiceLang.value = settings.voiceLang || "en-US";
 
   renderMuteList();
   renderWordList();
@@ -107,6 +111,9 @@ async function init() {
     els.jarCapPoints.value = val;
     persist({ jarCapPoints: val });
   });
+
+  els.voiceEnabled.addEventListener("change", () => persist({ voiceEnabled: els.voiceEnabled.checked }));
+  els.voiceLang.addEventListener("change", () => persist({ voiceLang: els.voiceLang.value }));
 
   els.muteAdd.addEventListener("click", async () => {
     const raw = els.muteInput.value.trim().toLowerCase();

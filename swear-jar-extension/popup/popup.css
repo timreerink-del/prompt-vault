@@ -111,6 +111,28 @@ body {
 .stat-label { font-size: 12px; color: var(--muted); }
 .fill-label { font-size: 12px; color: var(--muted); }
 
+.source-split {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.source-split .src-count { color: var(--text); font-weight: 600; }
+
+.voice-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin: 4px 0;
+}
+.voice-status.listening { background: rgba(120, 200, 140, 0.12); color: #a6e3b0; }
+.voice-status.off { background: rgba(255,255,255,0.05); color: var(--muted); }
+.voice-status.blocked { background: rgba(226, 100, 90, 0.12); color: var(--danger); }
+
 .top-words {
   display: flex;
   flex-wrap: wrap;
