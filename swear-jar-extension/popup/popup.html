@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Swear Jar</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="header">
+    <h1>🫙 Swear Jar</h1>
+    <button id="optionsBtn" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
+  </header>
+
+  <div class="jar-stage">
+    <svg id="jarSvg" viewBox="0 0 200 220" class="jar-svg" aria-hidden="true">
+      <defs>
+        <clipPath id="jarClip">
+          <path d="M40,60 h120 v130 a12,12 0 0 1 -12,12 h-96 a12,12 0 0 1 -12,-12 z" />
+        </clipPath>
+        <linearGradient id="fillGradient" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#c7860f" />
+          <stop offset="100%" stop-color="#f7c948" />
+        </linearGradient>
+      </defs>
+
+      <!-- lid -->
+      <rect x="55" y="18" width="90" height="18" rx="5" class="jar-lid" />
+      <rect x="60" y="34" width="80" height="10" rx="3" class="jar-lid-rim" />
+
+      <!-- jar outline -->
+      <path d="M40,60 h120 v130 a12,12 0 0 1 -12,12 h-96 a12,12 0 0 1 -12,-12 z" class="jar-outline" />
+
+      <!-- fill, clipped to jar interior -->
+      <g clip-path="url(#jarClip)">
+        <rect id="fillRect" x="34" y="190" width="132" height="0" fill="url(#fillGradient)" />
+        <g id="coinGroup"></g>
+      </g>
+
+      <!-- glass sheen -->
+      <path d="M52,66 v122" class="jar-sheen" />
+    </svg>
+
+    <div id="dropZone" class="drop-zone" aria-hidden="true"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-total">
+      <span id="totalCount">0</span>
+      <span class="stat-label">words caught</span>
+    </div>
+    <div class="fill-label"><span id="fillPercent">0</span>% full</div>
+  </div>
+
+  <div class="top-words" id="topWords"></div>
+
+  <div class="site-row">
+    <label class="switch">
+      <input type="checkbox" id="siteToggle" />
+      <span>Pause on <strong id="siteHost">this site</strong></span>
+    </label>
+  </div>
+
+  <footer class="footer">
+    <button id="resetBtn" class="ghost-btn">Empty the jar</button>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

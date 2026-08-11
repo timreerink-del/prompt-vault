@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Swear Jar Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main>
+    <h1>🫙 Swear Jar Settings</h1>
+
+    <section class="card">
+      <h2>General</h2>
+      <label class="row">
+        <input type="checkbox" id="enabled" />
+        <span>Enable Swear Jar</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" id="toastEnabled" />
+        <span>Show a small toast on the page when a word is caught</span>
+      </label>
+      <label class="row row-inline">
+        <span>Jar "full" at</span>
+        <input type="number" id="jarCapPoints" min="10" step="10" />
+        <span>points</span>
+      </label>
+      <p class="hint">Points are severity-weighted: mild words = 1pt, medium = 2pts, strong = 4pts.</p>
+    </section>
+
+    <section class="card">
+      <h2>Muted sites</h2>
+      <p class="hint">The jar won't scan pages on these hostnames.</p>
+      <div class="add-row">
+        <input type="text" id="muteInput" placeholder="example.com" />
+        <button id="muteAdd" class="btn">Add</button>
+      </div>
+      <ul id="muteList" class="chip-list"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Custom words</h2>
+      <p class="hint">Add your own words to catch, with a severity (1 = mild, 2 = medium, 3 = strong).</p>
+      <div class="add-row">
+        <input type="text" id="wordInput" placeholder="word" />
+        <select id="severityInput">
+          <option value="1">1 · mild</option>
+          <option value="2" selected>2 · medium</option>
+          <option value="3">3 · strong</option>
+        </select>
+        <button id="wordAdd" class="btn">Add</button>
+      </div>
+      <ul id="wordList" class="chip-list"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Built-in words</h2>
+      <p class="hint">Uncheck any default word you don't want counted.</p>
+      <div id="defaultWordGrid" class="default-word-grid"></div>
+    </section>
+
+    <section class="card danger">
+      <h2>Reset</h2>
+      <p class="hint">Clears the total count, history, and per-word/per-site stats. Settings above are kept.</p>
+      <button id="resetStatsBtn" class="btn danger-btn">Empty the jar</button>
+    </section>
+
+    <div id="saveToast" class="save-toast">Saved</div>
+  </main>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
